@@ -1,0 +1,110 @@
+{
+    "dashboard": {
+        "id": null,
+        "title": "Coris Intelligent Assistant Dashboard",
+        "tags": [
+            "coris",
+            "assistant",
+            "monitoring"
+        ],
+        "timezone": "browser",
+        "panels": [
+            {
+                "id": 1,
+                "title": "Conversations par Filiale",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "sum by (filiale_id) (rate(coris_conversations_total[5m]))",
+                        "legendFormat": "{{filiale_id}}"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "displayMode": "list",
+                            "orientation": "horizontal"
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": null
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 10
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 50
+                                }
+                            ]
+                        }
+                    }
+                },
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 0
+                }
+            },
+            {
+                "id": 2,
+                "title": "Temps de Réponse Moyen",
+                "type": "timeseries",
+                "targets": [
+                    {
+                        "expr": "avg(coris_response_time_seconds)",
+                        "legendFormat": "Temps de réponse moyen"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "drawStyle": "line",
+                            "lineInterpolation": "linear"
+                        },
+                        "unit": "s"
+                    }
+                },
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 0
+                }
+            },
+            {
+                "id": 3,
+                "title": "Escalades par Heure",
+                "type": "timeseries",
+                "targets": [
+                    {
+                        "expr": "rate(coris_escalations_total[1h])",
+                        "legendFormat": "Escalades/h"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 24,
+                    "x": 0,
+                    "y": 8
+                }
+            }
+        ],
+        "time": {
+            "from": "now-1h",
+            "to": "now"
+        },
+        "refresh": "30s"
+    }
+}

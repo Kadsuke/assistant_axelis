@@ -1,0 +1,30 @@
+# src/applications/coris_money/config/filiales/coris_burkina.yaml
+filiale:
+  id: "coris_bf"
+  name: "Coris Bank Burkina Faso"
+
+  applications:
+    coris_money:
+      active: true
+      pack_souscrit: "coris_basic"
+
+      # 🎯 BASE DE CONNAISSANCES DÉDIÉE SÉPARÉE
+      knowledge_base:
+        chroma_collection: "coris_money_coris_bf" # Collection différente
+        languages: ["fr"]
+        categories:
+          - "faq_burkina"
+          - "produits_locaux"
+          - "reglementation_bf"
+        content_sources:
+          - "/knowledge/coris_money/coris_bf/faq_bf.pdf"
+          - "/knowledge/coris_money/coris_bf/produits_bf.docx"
+
+      databases:
+        datawarehouse:
+          schema: "coris_bf"
+        reclamations:
+          schema: "coris_bf_complaints"
+
+      api_endpoints:
+        coris_money: "https://api.corismoney.bf"

@@ -1,0 +1,21 @@
+filiale:
+  id: "coris_ci"
+  name: "Coris Bank Côte d'Ivoire"
+
+  applications:
+    coris_money:
+      active: true
+      pack_souscrit: "coris_basic"
+
+      knowledge_base:
+        chroma_collection: "coris_money_coris_ci"
+        languages: ["fr", "en"]
+        categories:
+          - "faq_general"
+          - "produits_services"
+
+      databases:
+        datawarehouse:
+          schema: "coris_ci"
+        reclamations:
+          schema: "coris_ci_complaints"

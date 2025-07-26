@@ -1,0 +1,16 @@
+coris_money_packs:
+  coris_basic:
+    name: "Coris Money Basic"
+    application: "coris_money"
+    price: 2000000
+    inherits_base: ["infrastructure_pack"]
+    features:
+      - coris_faq_system
+      - coris_account_info
+      - coris_complaint_creation
+    agents:
+      - coris_banking_assistant
+    tools:
+      - coris_api_connector
+    automation_level: 70
+    channels: ["mobile", "web"]

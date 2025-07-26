@@ -1,0 +1,16 @@
+base_packs:
+  infrastructure_pack:
+    name: "Infrastructure de Base"
+    description: "Socle technique réutilisable"
+    features:
+      - mcp_server
+      - vector_database
+      - conversation_history
+      - basic_monitoring
+      - multi_language_support
+    agents:
+      - core_customer_service
+      - core_escalation_handler
+    tools:
+      - database_connection
+      - conversation_manager

@@ -1,0 +1,127 @@
+# Configuration Docker Compose pour production
+version: "3.8"
+
+services:
+  # Application principale - production
+  coris-assistant:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: coris-assistant-prod
+    environment:
+      # Production environment
+      - ENVIRONMENT=production
+      - LOG_LEVEL=WARNING
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+
+      # OpenAI
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+      # Databases (secured)
+      - CONVERSATIONS_HOST=postgres-conversations
+      - CONVERSATIONS_PORT=5432
+      - CONVERSATIONS_DB=coris_conversations
+      - CONVERSATIONS_USER=${CONVERSATIONS_USER}
+      - CONVERSATIONS_PASSWORD=${CONVERSATIONS_PASSWORD}
+
+      - DATAWAREHOUSE_HOST=${DATAWAREHOUSE_HOST}
+      - DATAWAREHOUSE_PORT=${DATAWAREHOUSE_PORT}
+      - DATAWAREHOUSE_DB=${DATAWAREHOUSE_DB}
+      - DATAWAREHOUSE_USER=${DATAWAREHOUSE_USER}
+      - DATAWAREHOUSE_PASSWORD=${DATAWAREHOUSE_PASSWORD}
+
+      - RECLAMATIONS_HOST=${RECLAMATIONS_HOST}
+      - RECLAMATIONS_PORT=${RECLAMATIONS_PORT}
+      - RECLAMATIONS_DB=${RECLAMATIONS_DB}
+      - RECLAMATIONS_USER=${RECLAMATIONS_USER}
+      - RECLAMATIONS_PASSWORD=${RECLAMATIONS_PASSWORD}
+
+      # Security
+      - SECRET_KEY=${SECRET_KEY}
+      - API_KEYS=${API_KEYS}
+
+    volumes:
+      - /opt/coris/data:/app/data
+      - /opt/coris/knowledge_bases:/app/knowledge_bases
+      - /opt/coris/logs:/app/data/logs
+    ports:
+      - "127.0.0.1:8000:8000" # Bind local only
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 1G
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - coris-prod-network
+
+  # PostgreSQL sécurisé
+  postgres-conversations:
+    image: postgres:15
+    container_name: coris-postgres-prod
+    environment:
+      POSTGRES_DB: coris_conversations
+      POSTGRES_USER: ${CONVERSATIONS_USER}
+      POSTGRES_PASSWORD: ${CONVERSATIONS_PASSWORD}
+    volumes:
+      - /opt/coris/postgres_data:/var/lib/postgresql/data
+      - /opt/coris/backups:/backups
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.5"
+    networks:
+      - coris-prod-network
+    # Pas d'exposition de port externe en production
+
+  # Nginx avec SSL
+  nginx:
+    image: nginx:alpine
+    container_name: coris-nginx-prod
+    volumes:
+      - ./configs/nginx/prod.conf:/etc/nginx/conf.d/default.conf
+      - /opt/coris/ssl:/etc/nginx/ssl
+      - /opt/coris/logs/nginx:/var/log/nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always
+    depends_on:
+      - coris-assistant
+    networks:
+      - coris-prod-network
+
+  # Monitoring sécurisé
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: coris-prometheus-prod
+    volumes:
+      - ./configs/prometheus/prod.yml:/etc/prometheus/prometheus.yml
+      - /opt/coris/prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.external-url=https://monitoring.coris.local/prometheus"
+    restart: always
+    networks:
+      - coris-prod-network
+
+networks:
+  coris-prod-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

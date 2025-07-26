@@ -1,0 +1,77 @@
+# Configuration complète des tâches CrewAI
+tasks:
+  # ===============================
+  # TÂCHES D'ACCUEIL ET ORIENTATION
+  # ===============================
+  welcome_and_classify:
+    description: |
+      Accueillir le client de manière chaleureuse et personnalisée selon sa langue 
+      et sa filiale. Analyser son message pour:
+      1. Détecter sa langue préférée (français/anglais)
+      2. Classifier son intention principale avec précision
+      3. Évaluer le niveau d'urgence et l'état émotionnel
+      4. Déterminer l'agent spécialisé le mieux adapté
+      5. Préparer le contexte pour la suite de la conversation
+
+      Adaptez votre approche selon le profil client et le contexte culturel.
+    expected_output: |
+      Un message d'accueil personnalisé dans la langue du client, incluant:
+      - Salutation appropriée au contexte local
+      - Classification de l'intention (faq/réclamation/opération/information)
+      - Niveau de confiance de la classification (0-100%)
+      - Recommandation d'agent spécialisé avec justification
+      - Contexte structuré pour optimiser la suite des échanges
+      - Évaluation de l'urgence et de l'état émotionnel
+    agent: core_customer_service
+
+  # ===============================
+  # TÂCHES DE GESTION D'INFORMATIONS
+  # ===============================
+  handle_faq_query:
+    description: |
+      Traiter une question fréquente en effectuant une recherche intelligente 
+      dans la base de connaissances spécifique à la filiale. 
+      1. Analyser la question pour identifier les concepts clés
+      2. Effectuer une recherche sémantique dans ChromaDB
+      3. Évaluer la pertinence des résultats trouvés
+      4. Synthétiser une réponse claire et complète
+      5. Proposer des actions complémentaires pertinentes
+      6. Identifier des questions connexes qui pourraient intéresser le client
+    expected_output: |
+      Une réponse structurée contenant:
+      - Réponse directe et précise à la question posée
+      - Sources utilisées avec niveau de confiance
+      - Actions suggérées (liens, procédures, contacts)
+      - Questions connexes recommandées
+      - Invitation à poser des questions de suivi si nécessaire
+    agent: coris_banking_assistant
+    context: [welcome_and_classify]
+
+  search_advanced_info:
+    description: |
+      Rechercher des informations complexes nécessitant l'accès à plusieurs 
+      sources de données (base de connaissances, historique transactions, etc.).
+      Croiser les informations pour fournir une réponse complète et contextuelle.
+    expected_output: |
+      Analyse complète avec données croisées, recommandations personnalisées 
+      et prochaines étapes suggérées.
+    agent: coris_financial_advisor
+    context: [welcome_and_classify]
+
+  # ===============================
+  # TÂCHES DE GESTION DES RÉCLAMATIONS
+  # ===============================
+  process_complaint:
+    description: |
+      Traiter une réclamation client avec empathie et efficacité:
+      1. Écouter et comprendre le problème avec empathie
+      2. Classifier automatiquement le type et la gravité
+      3. Collecter toutes les informations nécessaires de manière structurée
+      4. Générer un numéro de dossier unique et traçable
+      5. Déterminer la priorité selon la matrice de criticité
+      6. Initier les actions de résolution de niveau 1
+      7. Informer le client des délais et prochaines étapes
+    expected_output: |
+      Réclamation complètement traitée avec:
+      - Numéro de dossier unique généré
+      - Classification détaill

@@ -1,0 +1,40 @@
+# Configuration Prometheus pour monitoring
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+scrape_configs:
+  # Monitoring de l'API Coris Assistant
+  - job_name: "coris-assistant"
+    static_configs:
+      - targets: ["coris-assistant:8000"]
+    metrics_path: "/api/v1/metrics"
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Monitoring PostgreSQL
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres-conversations:5432"]
+    scrape_interval: 30s
+
+  # Monitoring Redis
+  - job_name: "redis"
+    static_configs:
+      - targets: ["redis:6379"]
+    scrape_interval: 30s
+
+  # Monitoring Nginx
+  - job_name: "nginx"
+    static_configs:
+      - targets: ["nginx:80"]
+    scrape_interval: 30s
