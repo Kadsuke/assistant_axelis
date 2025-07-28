@@ -1,16 +1,450 @@
+# Configuration des packs spécifiques à l'application Coris Money
+# Ces packs s'ajoutent aux packs de base pour offrir des fonctionnalités métier
+
 coris_money_packs:
   coris_basic:
     name: "Coris Money Basic"
+    description: "Fonctionnalités de base pour l'assistance Coris Money"
     application: "coris_money"
-    price: 2000000
-    inherits_base: ["infrastructure_pack"]
+    extends: "coris_basic" # Hérite du pack de base
+
+    # Fonctionnalités spécifiques Coris Money
     features:
-      - coris_faq_system
-      - coris_account_info
-      - coris_complaint_creation
+      - "coris_faq_system"
+      - "coris_account_info"
+      - "coris_balance_inquiry"
+      - "coris_transaction_history"
+      - "coris_basic_support"
+      - "coris_service_hours"
+      - "coris_contact_info"
+      - "coris_mobile_app_help"
+
+    # Agents spécialisés Coris Money
     agents:
-      - coris_banking_assistant
+      - "coris_banking_assistant"
+      - "coris_mobile_helper"
+
+    # Outils/APIs autorisés
     tools:
-      - coris_api_connector
-    automation_level: 70
-    channels: ["mobile", "web"]
+      - "coris_faq_search"
+      - "search_knowledge_base"
+      - "get_account_balance"
+      - "query_transaction_history"
+      - "get_service_hours"
+      - "get_contact_info"
+
+    # Limites spécifiques Coris Money
+    limits:
+      account_queries_per_hour: 50
+      balance_checks_per_day: 20
+      transaction_history_queries_per_day: 10
+      faq_searches_per_hour: 100
+      knowledge_base_queries_per_hour: 50
+
+    # APIs externes autorisées
+    external_apis:
+      - "coris_core_banking" # Lecture seule
+
+    # Base de connaissances
+    knowledge_base:
+      collections: ["coris_money_faq", "coris_services"]
+      max_results_per_query: 5
+      similarity_threshold: 0.7
+
+    # Configuration des réponses
+    response_config:
+      max_response_length: 500
+      include_sources: true
+      suggest_actions: true
+      escalation_threshold: 0.4
+
+  coris_advanced:
+    name: "Coris Money Advanced"
+    description: "Fonctionnalités avancées avec agents spécialisés et outils métier"
+    application: "coris_money"
+    extends: "coris_advanced"
+
+    # Fonctionnalités avancées
+    features:
+      # Hérite des fonctionnalités basic +
+      - "coris_faq_system"
+      - "coris_account_info"
+      - "coris_balance_inquiry"
+      - "coris_transaction_history"
+      - "coris_basic_support"
+      - "coris_service_hours"
+      - "coris_contact_info"
+      - "coris_mobile_app_help"
+      # Fonctionnalités avancées
+      - "coris_account_operations"
+      - "coris_transfer_assistance"
+      - "coris_card_management"
+      - "coris_loan_information"
+      - "coris_investment_advice"
+      - "coris_complaint_creation"
+      - "coris_priority_support"
+      - "coris_detailed_analytics"
+      - "coris_personalized_recommendations"
+      - "coris_multi_account_management"
+
+    # Agents spécialisés étendus
+    agents:
+      - "coris_banking_assistant"
+      - "coris_mobile_helper"
+      - "coris_operations_specialist"
+      - "coris_complaint_handler"
+      - "coris_financial_advisor"
+      - "coris_card_specialist"
+
+    # Outils avancés
+    tools:
+      - "coris_faq_search"
+      - "search_knowledge_base"
+      - "get_account_balance"
+      - "query_transaction_history"
+      - "get_service_hours"
+      - "get_contact_info"
+      - "check_transfer_limits"
+      - "get_transfer_fees"
+      - "get_card_info"
+      - "create_complaint"
+      - "get_complaint_status"
+      - "calculate_loan_eligibility"
+      - "get_investment_products"
+      - "sentiment_analyzer"
+      - "generate_financial_report"
+
+    # Limites étendues
+    limits:
+      account_queries_per_hour: 200
+      balance_checks_per_day: 100
+      transaction_history_queries_per_day: 50
+      transfer_inquiries_per_day: 30
+      complaint_submissions_per_day: 5
+      loan_calculations_per_day: 10
+      investment_queries_per_day: 20
+      faq_searches_per_hour: 500
+      knowledge_base_queries_per_hour: 200
+
+    # APIs externes étendues
+    external_apis:
+      - "coris_core_banking"
+      - "coris_cards_system"
+      - "coris_loans_system"
+      - "coris_investments_system"
+      - "coris_complaints_system"
+
+    # Base de connaissances étendue
+    knowledge_base:
+      collections:
+        - "coris_money_faq"
+        - "coris_services"
+        - "coris_products"
+        - "coris_procedures"
+        - "coris_regulations"
+      max_results_per_query: 10
+      similarity_threshold: 0.6
+      context_window: 2000
+
+    # Configuration de réponse avancée
+    response_config:
+      max_response_length: 1000
+      include_sources: true
+      suggest_actions: true
+      escalation_threshold: 0.3
+      personalization_enabled: true
+      multi_turn_context: true
+
+  coris_premium:
+    name: "Coris Money Premium"
+    description: "Toutes les fonctionnalités avec support dédié et intégrations complètes"
+    application: "coris_money"
+    extends: "coris_premium"
+
+    # Toutes les fonctionnalités
+    features:
+      # Hérite des fonctionnalités advanced +
+      - "coris_faq_system"
+      - "coris_account_info"
+      - "coris_balance_inquiry"
+      - "coris_transaction_history"
+      - "coris_basic_support"
+      - "coris_service_hours"
+      - "coris_contact_info"
+      - "coris_mobile_app_help"
+      - "coris_account_operations"
+      - "coris_transfer_assistance"
+      - "coris_card_management"
+      - "coris_loan_information"
+      - "coris_investment_advice"
+      - "coris_complaint_creation"
+      - "coris_priority_support"
+      - "coris_detailed_analytics"
+      - "coris_personalized_recommendations"
+      - "coris_multi_account_management"
+      # Fonctionnalités premium
+      - "coris_transfer_cancellation"
+      - "coris_advanced_security"
+      - "coris_wealth_management"
+      - "coris_business_banking"
+      - "coris_international_services"
+      - "coris_dedicated_relationship_manager"
+      - "coris_custom_reporting"
+      - "coris_api_integration"
+      - "coris_white_label_support"
+      - "coris_real_time_notifications"
+      - "coris_advanced_fraud_detection"
+
+    # Tous les agents disponibles
+    agents:
+      - "coris_banking_assistant"
+      - "coris_mobile_helper"
+      - "coris_operations_specialist"
+      - "coris_complaint_handler"
+      - "coris_financial_advisor"
+      - "coris_card_specialist"
+      - "coris_wealth_manager"
+      - "coris_business_advisor"
+      - "coris_security_specialist"
+      - "coris_relationship_manager"
+
+    # Outils complets
+    tools:
+      - "coris_faq_search"
+      - "search_knowledge_base"
+      - "get_account_balance"
+      - "query_transaction_history"
+      - "get_service_hours"
+      - "get_contact_info"
+      - "check_transfer_limits"
+      - "get_transfer_fees"
+      - "get_card_info"
+      - "create_complaint"
+      - "get_complaint_status"
+      - "calculate_loan_eligibility"
+      - "get_investment_products"
+      - "sentiment_analyzer"
+      - "generate_financial_report"
+      - "cancel_transfer"
+      - "block_unblock_card"
+      - "calculate_wealth_portfolio"
+      - "get_business_account_info"
+      - "process_international_transfer"
+      - "fraud_detection_analysis"
+      - "generate_custom_report"
+      - "real_time_alert_manager"
+
+    # Limites premium (très élevées)
+    limits:
+      account_queries_per_hour: 1000
+      balance_checks_per_day: 500
+      transaction_history_queries_per_day: 200
+      transfer_inquiries_per_day: 100
+      transfer_cancellations_per_day: 10
+      complaint_submissions_per_day: 20
+      loan_calculations_per_day: 50
+      investment_queries_per_day: 100
+      wealth_management_queries_per_day: 50
+      business_banking_queries_per_day: 100
+      international_queries_per_day: 30
+      faq_searches_per_hour: 2000
+      knowledge_base_queries_per_hour: 1000
+      custom_reports_per_day: 10
+
+    # Toutes les APIs
+    external_apis:
+      - "coris_core_banking"
+      - "coris_cards_system"
+      - "coris_loans_system"
+      - "coris_investments_system"
+      - "coris_complaints_system"
+      - "coris_wealth_management"
+      - "coris_business_banking"
+      - "coris_international_services"
+      - "coris_fraud_detection"
+      - "coris_reporting_engine"
+      - "coris_notification_service"
+
+    # Base de connaissances complète
+    knowledge_base:
+      collections:
+        - "coris_money_faq"
+        - "coris_services"
+        - "coris_products"
+        - "coris_procedures"
+        - "coris_regulations"
+        - "coris_wealth_management"
+        - "coris_business_guides"
+        - "coris_international_procedures"
+        - "coris_security_protocols"
+      max_results_per_query: 20
+      similarity_threshold: 0.5
+      context_window: 4000
+      hybrid_search: true
+
+    # Configuration premium
+    response_config:
+      max_response_length: 2000
+      include_sources: true
+      suggest_actions: true
+      escalation_threshold: 0.2
+      personalization_enabled: true
+      multi_turn_context: true
+      real_time_data: true
+      custom_branding: true
+
+# Configuration des fonctionnalités spécifiques
+feature_definitions:
+  coris_faq_system:
+    description: "Système de FAQ Coris Money"
+    agents_required: ["coris_banking_assistant"]
+    tools_required: ["coris_faq_search"]
+
+  coris_account_info:
+    description: "Informations de compte Coris Money"
+    agents_required: ["coris_banking_assistant"]
+    tools_required: ["get_account_balance"]
+    apis_required: ["coris_core_banking"]
+
+  coris_transfer_assistance:
+    description: "Assistance pour les virements"
+    agents_required: ["coris_operations_specialist"]
+    tools_required: ["check_transfer_limits", "get_transfer_fees"]
+
+  coris_complaint_creation:
+    description: "Création et suivi des réclamations"
+    agents_required: ["coris_complaint_handler"]
+    tools_required: ["create_complaint", "get_complaint_status"]
+    apis_required: ["coris_complaints_system"]
+
+  coris_wealth_management:
+    description: "Gestion de patrimoine"
+    agents_required: ["coris_wealth_manager"]
+    tools_required: ["calculate_wealth_portfolio"]
+    apis_required: ["coris_wealth_management"]
+
+  coris_transfer_cancellation:
+    description: "Annulation de virements"
+    agents_required: ["coris_operations_specialist"]
+    tools_required: ["cancel_transfer"]
+    security_level: "high"
+
+  coris_advanced_fraud_detection:
+    description: "Détection avancée de fraude"
+    agents_required: ["coris_security_specialist"]
+    tools_required: ["fraud_detection_analysis"]
+    apis_required: ["coris_fraud_detection"]
+
+# Règles de compatibilité entre packs
+compatibility_rules:
+  upgrade_paths:
+    coris_basic: ["coris_advanced", "coris_premium"]
+    coris_advanced: ["coris_premium"]
+
+  migration_settings:
+    preserve_conversation_history: true
+    migrate_preferences: true
+    update_agent_access: true
+
+  downgrade_restrictions:
+    coris_premium:
+      restricted_features:
+        - "coris_transfer_cancellation"
+        - "coris_wealth_management"
+        - "coris_advanced_fraud_detection"
+      grace_period_days: 30
+
+    coris_advanced:
+      restricted_features:
+        - "coris_complaint_creation"
+        - "coris_financial_advisor"
+      grace_period_days: 15
+
+# Configuration des intégrations
+integrations:
+  coris_core_banking:
+    endpoint: "${DATAWAREHOUSE_HOST}/api/v1"
+    auth_type: "api_key"
+    rate_limits:
+      requests_per_minute: 100
+      burst_limit: 200
+    timeout: 30
+    retry_policy:
+      max_retries: 3
+      backoff_factor: 2
+
+  coris_complaints_system:
+    endpoint: "${RECLAMATIONS_HOST}/api/v1"
+    auth_type: "api_key"
+    rate_limits:
+      requests_per_minute: 50
+      burst_limit: 100
+    timeout: 45
+
+  coris_notification_service:
+    endpoint: "${NOTIFICATIONS_HOST}/api/v1"
+    auth_type: "bearer_token"
+    rate_limits:
+      requests_per_minute: 200
+      burst_limit: 500
+    timeout: 15
+
+# Métriques et monitoring spécifiques
+monitoring:
+  key_metrics:
+    - "account_queries_success_rate"
+    - "transfer_assistance_completion_rate"
+    - "complaint_resolution_time"
+    - "fraud_detection_accuracy"
+    - "customer_satisfaction_score"
+
+  alerts:
+    high_error_rate:
+      threshold: 0.05 # 5%
+      window: "5m"
+      severity: "high"
+
+    api_timeout:
+      threshold: 30 # secondes
+      window: "1m"
+      severity: "medium"
+
+    rate_limit_approaching:
+      threshold: 0.8 # 80% des limites
+      window: "1h"
+      severity: "low"
+
+# Configuration multilingue
+languages:
+  supported: ["fr", "en"]
+  default: "fr"
+
+  response_templates:
+    fr:
+      greeting: "Bonjour ! Je suis votre assistant Coris Money. Comment puis-je vous aider ?"
+      escalation: "Je vais transférer votre demande à un conseiller humain."
+      error: "Je rencontre une difficulté technique. Veuillez réessayer dans quelques instants."
+
+    en:
+      greeting: "Hello! I'm your Coris Money assistant. How can I help you?"
+      escalation: "I'll transfer your request to a human advisor."
+      error: "I'm experiencing technical difficulties. Please try again in a few moments."
+
+# Metadata
+metadata:
+  version: "1.0.0"
+  last_updated: "2024-01-15"
+  application: "coris_money"
+  schema_version: "1.0"
+
+  # Équipe responsable
+  team:
+    product_owner: "Coris Money Product Team"
+    technical_lead: "AI Development Team"
+    business_analyst: "Digital Banking Team"
+
+  # Documentation
+  documentation:
+    feature_specs: "https://docs.coris.ci/coris-money/features"
+    api_docs: "https://docs.coris.ci/coris-money/api"
+    user_guide: "https://docs.coris.ci/coris-money/user-guide"

@@ -1,0 +1,460 @@
+# Configuration des alertes pour Coris Intelligent Assistant
+# Système d'alertes multicouche : email, SMS, webhook, dashboard
+
+# Configuration générale des alertes
+global:
+  # Paramètres par défaut
+  default_severity: "medium"
+  default_timeout: "5m"
+  escalation_timeout: "15m"
+
+  # Canaux de notification
+  notification_channels:
+    email:
+      enabled: true
+      smtp_server: "${SMTP_SERVER:-smtp.gmail.com}"
+      smtp_port: 587
+      username: "${SMTP_USERNAME}"
+      password: "${SMTP_PASSWORD}"
+      from_address: "${ALERT_FROM_EMAIL:-alerts@coris.ci}"
+      use_tls: true
+
+    sms:
+      enabled: true
+      provider: "orange_sms" # ou autre provider SMS
+      api_key: "${SMS_API_KEY}"
+      sender_id: "CORIS"
+
+    webhook:
+      enabled: true
+      slack_webhook: "${SLACK_WEBHOOK_URL}"
+      teams_webhook: "${TEAMS_WEBHOOK_URL}"
+      custom_webhook: "${CUSTOM_WEBHOOK_URL}"
+
+    dashboard:
+      enabled: true
+      grafana_url: "${GRAFANA_URL:-http://localhost:3000}"
+
+  # Équipes et contacts
+  teams:
+    infrastructure:
+      name: "Équipe Infrastructure"
+      email: "infra@coris.ci"
+      phone: "+225XXXXXXXX"
+      escalation_delay: "10m"
+
+    ai_team:
+      name: "Équipe IA"
+      email: "ai-team@coris.ci"
+      phone: "+225YYYYYYYY"
+      escalation_delay: "15m"
+
+    business:
+      name: "Équipe Business"
+      email: "business@coris.ci"
+      phone: "+225ZZZZZZZZ"
+      escalation_delay: "30m"
+
+    on_call:
+      name: "Astreinte 24/7"
+      email: "oncall@coris.ci"
+      phone: "+225AAAAAAAA"
+      escalation_delay: "5m"
+
+# Alertes critiques (Niveau 1 - Interruption de service)
+critical_alerts:
+  # Service principal down
+  service_down:
+    name: "Service Principal Indisponible"
+    description: "L'API principale Coris Assistant ne répond pas"
+    severity: "critical"
+    condition: |
+      up{job="coris-assistant"} == 0
+    duration: "1m"
+    notifications:
+      immediate:
+        - teams: ["infrastructure", "on_call"]
+        - channels: ["email", "sms", "webhook"]
+
+    escalation:
+      - delay: "5m"
+        teams: ["ai_team"]
+        channels: ["email", "sms"]
+      - delay: "15m"
+        teams: ["business"]
+        channels: ["email"]
+
+    actions:
+      - restart_service
+      - check_dependencies
+      - enable_maintenance_mode
+
+    runbook: "https://docs.coris.ci/runbooks/service-down"
+
+  # Base de données inaccessible
+  database_down:
+    name: "Base de Données Conversations Inaccessible"
+    description: "Impossible de se connecter à PostgreSQL conversations"
+    severity: "critical"
+    condition: |
+      up{job="postgres-conversations"} == 0
+    duration: "2m"
+    notifications:
+      immediate:
+        - teams: ["infrastructure", "on_call"]
+        - channels: ["email", "sms", "webhook"]
+
+    escalation:
+      - delay: "10m"
+        teams: ["ai_team", "business"]
+        channels: ["email"]
+
+    actions:
+      - check_postgres_logs
+      - verify_disk_space
+      - attempt_connection_recovery
+
+    runbook: "https://docs.coris.ci/runbooks/database-down"
+
+  # ChromaDB inaccessible
+  chromadb_down:
+    name: "Base de Connaissances Inaccessible"
+    description: "ChromaDB ne répond pas - Impact sur la recherche de connaissances"
+    severity: "critical"
+    condition: |
+      up{job="chromadb"} == 0
+    duration: "3m"
+    notifications:
+      immediate:
+        - teams: ["infrastructure", "ai_team"]
+        - channels: ["email", "webhook"]
+
+    escalation:
+      - delay: "15m"
+        teams: ["on_call"]
+        channels: ["sms"]
+
+    actions:
+      - restart_chromadb
+      - check_vector_data_integrity
+      - fallback_to_basic_faq
+
+    runbook: "https://docs.coris.ci/runbooks/chromadb-down"
+
+  # Taux d'erreur élevé
+  high_error_rate:
+    name: "Taux d'Erreur Critique"
+    description: "Plus de 10% des requêtes échouent"
+    severity: "critical"
+    condition: |
+      (
+        sum(rate(http_requests_total{status=~"5.."}[5m])) /
+        sum(rate(http_requests_total[5m]))
+      ) > 0.10
+    duration: "3m"
+    notifications:
+      immediate:
+        - teams: ["ai_team", "infrastructure"]
+        - channels: ["email", "webhook"]
+
+    escalation:
+      - delay: "10m"
+        teams: ["on_call"]
+        channels: ["sms"]
+
+    actions:
+      - analyze_error_logs
+      - check_upstream_services
+      - scale_if_needed
+
+    runbook: "https://docs.coris.ci/runbooks/high-error-rate"
+
+# Alertes d'avertissement (Niveau 2 - Performance dégradée)
+warning_alerts:
+  # Temps de réponse élevé
+  high_response_time:
+    name: "Temps de Réponse Élevé"
+    description: "Le temps de réponse médian dépasse 5 secondes"
+    severity: "warning"
+    condition: |
+      histogram_quantile(0.5, 
+        sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+      ) > 5
+    duration: "5m"
+    notifications:
+      immediate:
+        - teams: ["ai_team"]
+        - channels: ["email", "webhook"]
+
+    escalation:
+      - delay: "20m"
+        teams: ["infrastructure"]
+        channels: ["email"]
+
+    actions:
+      - check_system_resources
+      - analyze_slow_queries
+      - optimize_if_needed
+
+  # Utilisation CPU élevée
+  high_cpu_usage:
+    name: "Utilisation CPU Élevée"
+    description: "Utilisation CPU > 80% pendant plus de 10 minutes"
+    severity: "warning"
+    condition: |
+      avg(100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+    duration: "10m"
+    notifications:
+      immediate:
+        - teams: ["infrastructure"]
+        - channels: ["email"]
+
+    actions:
+      - monitor_processes
+      - check_for_cpu_intensive_operations
+      - consider_scaling
+
+  # Utilisation mémoire élevée
+  high_memory_usage:
+    name: "Utilisation Mémoire Élevée"
+    description: "Utilisation mémoire > 85%"
+    severity: "warning"
+    condition: |
+      (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+    duration: "5m"
+    notifications:
+      immediate:
+        - teams: ["infrastructure"]
+        - channels: ["email"]
+
+    actions:
+      - check_memory_leaks
+      - restart_heavy_processes
+      - clear_cache_if_needed
+
+  # Espace disque faible
+  low_disk_space:
+    name: "Espace Disque Faible"
+    description: "Espace disque disponible < 15%"
+    severity: "warning"
+    condition: |
+      (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.15
+    duration: "5m"
+    notifications:
+      immediate:
+        - teams: ["infrastructure"]
+        - channels: ["email"]
+
+    actions:
+      - cleanup_old_logs
+      - cleanup_old_backups
+      - expand_storage_if_needed
+
+  # Taux d'escalade élevé
+  high_escalation_rate:
+    name: "Taux d'Escalade Élevé"
+    description: "Plus de 30% des conversations sont escaladées"
+    severity: "warning"
+    condition: |
+      (
+        sum(increase(coris_escalations_total[1h])) /
+        sum(increase(coris_conversations_total[1h]))
+      ) > 0.30
+    duration: "10m"
+    notifications:
+      immediate:
+        - teams: ["ai_team", "business"]
+        - channels: ["email", "webhook"]
+
+    actions:
+      - review_agent_performance
+      - check_knowledge_base_coverage
+      - analyze_escalation_reasons
+
+# Alertes informatives (Niveau 3 - Monitoring)
+info_alerts:
+  # Tokens OpenAI élevés
+  high_token_usage:
+    name: "Consommation Tokens OpenAI Élevée"
+    description: "Consommation de tokens > 80% de la limite quotidienne"
+    severity: "info"
+    condition: |
+      sum(increase(coris_openai_tokens_total[1d])) > 400000
+    duration: "1h"
+    notifications:
+      immediate:
+        - teams: ["ai_team", "business"]
+        - channels: ["email"]
+
+    actions:
+      - monitor_token_usage_patterns
+      - optimize_prompts_if_needed
+      - adjust_limits_if_necessary
+
+  # Nouveau déploiement
+  deployment_notification:
+    name: "Nouveau Déploiement Détecté"
+    description: "Une nouvelle version a été déployée"
+    severity: "info"
+    condition: |
+      changes(coris_build_info[5m]) > 0
+    duration: "1m"
+    notifications:
+      immediate:
+        - teams: ["ai_team", "infrastructure"]
+        - channels: ["webhook"]
+
+    actions:
+      - monitor_post_deployment_metrics
+      - verify_health_checks
+      - check_for_regressions
+
+  # Pic de trafic
+  traffic_spike:
+    name: "Pic de Trafic Détecté"
+    description: "Augmentation du trafic > 200% par rapport à la normale"
+    severity: "info"
+    condition: |
+      sum(rate(http_requests_total[5m])) > (
+        avg_over_time(sum(rate(http_requests_total[5m]))[1d:1h]) * 3
+      )
+    duration: "10m"
+    notifications:
+      immediate:
+        - teams: ["infrastructure", "business"]
+        - channels: ["email", "webhook"]
+
+    actions:
+      - monitor_system_performance
+      - prepare_for_scaling
+      - analyze_traffic_source
+
+# Configuration des templates de messages
+message_templates:
+  email:
+    critical: |
+      🚨 ALERTE CRITIQUE - {{ .alert_name }}
+
+      **Service:** Coris Intelligent Assistant
+      **Sévérité:** {{ .severity }}
+      **Heure:** {{ .timestamp }}
+
+      **Description:** {{ .description }}
+
+      **Condition:** {{ .condition }}
+
+      **Actions recommandées:**
+      {{ range .actions }}
+      - {{ . }}
+      {{ end }}
+
+      **Runbook:** {{ .runbook }}
+
+      **Équipe assignée:** {{ .team }}
+
+      --
+      Système d'alertes Coris CI
+
+    warning: |
+      ⚠️ ALERTE - {{ .alert_name }}
+
+      **Service:** Coris Intelligent Assistant
+      **Sévérité:** {{ .severity }}
+      **Heure:** {{ .timestamp }}
+
+      **Description:** {{ .description }}
+
+      **Actions suggérées:**
+      {{ range .actions }}
+      - {{ . }}
+      {{ end }}
+
+      **Équipe assignée:** {{ .team }}
+
+  slack:
+    critical: |
+      🚨 *ALERTE CRITIQUE*
+
+      *Service:* Coris Intelligent Assistant
+      *Alerte:* {{ .alert_name }}
+      *Sévérité:* {{ .severity }}
+
+      {{ .description }}
+
+      <{{ .runbook }}|Voir le runbook>
+
+    warning: |
+      ⚠️ *Alerte*
+
+      *Service:* Coris Intelligent Assistant
+      *Alerte:* {{ .alert_name }}
+
+      {{ .description }}
+
+  sms: |
+    CORIS ALERT: {{ .alert_name }} - {{ .severity }}
+    {{ .description }}
+    Equipe: {{ .team }}
+
+# Configuration de la résolution automatique
+auto_resolution:
+  enabled: true
+  timeout: "1h" # Résolution automatique après 1h sans déclenchement
+
+  conditions:
+    service_recovery: |
+      up{job="coris-assistant"} == 1
+    database_recovery: |
+      up{job="postgres-conversations"} == 1
+    error_rate_normal: |
+      (
+        sum(rate(http_requests_total{status=~"5.."}[5m])) /
+        sum(rate(http_requests_total[5m]))
+      ) < 0.05
+
+# Configuration des horaires d'astreinte
+on_call_schedule:
+  timezone: "Africa/Abidjan"
+
+  business_hours:
+    weekdays: "08:00-18:00"
+    saturday: "09:00-13:00"
+    sunday: "off"
+
+  escalation_rules:
+    business_hours:
+      level_1: "ai_team"
+      level_2: "infrastructure"
+      level_3: "on_call"
+
+    after_hours:
+      level_1: "on_call"
+      level_2: "infrastructure"
+      level_3: "ai_team"
+
+# Intégration avec des systèmes externes
+integrations:
+  pagerduty:
+    enabled: false
+    api_key: "${PAGERDUTY_API_KEY}"
+    service_key: "${PAGERDUTY_SERVICE_KEY}"
+
+  opsgenie:
+    enabled: false
+    api_key: "${OPSGENIE_API_KEY}"
+    team: "coris-team"
+
+  jira:
+    enabled: true
+    url: "${JIRA_URL}"
+    username: "${JIRA_USERNAME}"
+    api_token: "${JIRA_API_TOKEN}"
+    project_key: "CORIS"
+    issue_type: "Bug"
+
+# Métadonnées
+metadata:
+  version: "1.0.0"
+  last_updated: "2024-01-15"
+  owner: "Infrastructure Team"
+  contact: "infra@coris.ci"

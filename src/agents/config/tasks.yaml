@@ -1,77 +1,546 @@
-# Configuration complète des tâches CrewAI
-tasks:
-  # ===============================
-  # TÂCHES D'ACCUEIL ET ORIENTATION
-  # ===============================
-  welcome_and_classify:
-    description: |
-      Accueillir le client de manière chaleureuse et personnalisée selon sa langue 
-      et sa filiale. Analyser son message pour:
-      1. Détecter sa langue préférée (français/anglais)
-      2. Classifier son intention principale avec précision
-      3. Évaluer le niveau d'urgence et l'état émotionnel
-      4. Déterminer l'agent spécialisé le mieux adapté
-      5. Préparer le contexte pour la suite de la conversation
+# Configuration des tâches CrewAI pour Coris Intelligent Assistant
+# Ces tâches définissent les workflows d'orchestration entre agents
 
-      Adaptez votre approche selon le profil client et le contexte culturel.
-    expected_output: |
-      Un message d'accueil personnalisé dans la langue du client, incluant:
-      - Salutation appropriée au contexte local
-      - Classification de l'intention (faq/réclamation/opération/information)
-      - Niveau de confiance de la classification (0-100%)
-      - Recommandation d'agent spécialisé avec justification
-      - Contexte structuré pour optimiser la suite des échanges
-      - Évaluation de l'urgence et de l'état émotionnel
-    agent: core_customer_service
-
-  # ===============================
-  # TÂCHES DE GESTION D'INFORMATIONS
-  # ===============================
-  handle_faq_query:
+core_tasks:
+  # Tâche principale de traitement des requêtes utilisateur
+  process_user_query:
+    name: "Traitement de requête utilisateur"
     description: |
-      Traiter une question fréquente en effectuant une recherche intelligente 
-      dans la base de connaissances spécifique à la filiale. 
-      1. Analyser la question pour identifier les concepts clés
-      2. Effectuer une recherche sémantique dans ChromaDB
-      3. Évaluer la pertinence des résultats trouvés
-      4. Synthétiser une réponse claire et complète
-      5. Proposer des actions complémentaires pertinentes
-      6. Identifier des questions connexes qui pourraient intéresser le client
-    expected_output: |
-      Une réponse structurée contenant:
-      - Réponse directe et précise à la question posée
-      - Sources utilisées avec niveau de confiance
-      - Actions suggérées (liens, procédures, contacts)
-      - Questions connexes recommandées
-      - Invitation à poser des questions de suivi si nécessaire
-    agent: coris_banking_assistant
-    context: [welcome_and_classify]
+      Analyse la requête utilisateur, détermine l'intention et route vers les agents appropriés.
+      Cette tâche coordonne l'ensemble du processus de réponse.
 
-  search_advanced_info:
-    description: |
-      Rechercher des informations complexes nécessitant l'accès à plusieurs 
-      sources de données (base de connaissances, historique transactions, etc.).
-      Croiser les informations pour fournir une réponse complète et contextuelle.
-    expected_output: |
-      Analyse complète avec données croisées, recommandations personnalisées 
-      et prochaines étapes suggérées.
-    agent: coris_financial_advisor
-    context: [welcome_and_classify]
+    # Agent responsable de la tâche
+    agent: "query_orchestrator"
 
-  # ===============================
-  # TÂCHES DE GESTION DES RÉCLAMATIONS
-  # ===============================
-  process_complaint:
+    # Paramètres d'entrée attendus
+    inputs:
+      - "user_message"
+      - "conversation_context"
+      - "filiale_config"
+      - "available_agents"
+
+    # Étapes du workflow
+    workflow:
+      - step: "analyze_intent"
+        description: "Analyser l'intention de l'utilisateur"
+        tools: ["intent_classifier"]
+        output: "user_intent"
+
+      - step: "check_permissions"
+        description: "Vérifier les permissions selon le pack souscrit"
+        validation: "pack_authorization"
+        output: "authorized_features"
+
+      - step: "route_to_agent"
+        description: "Router vers l'agent le plus approprié"
+        logic: "agent_selection_rules"
+        output: "selected_agent"
+
+      - step: "execute_response"
+        description: "Exécuter la génération de réponse"
+        delegate_to: "selected_agent"
+        output: "agent_response"
+
+    # Conditions de succès
+    success_criteria:
+      - "user_intent identified"
+      - "authorized_features validated"
+      - "agent_response generated"
+
+    # Gestion d'erreur
+    error_handling:
+      fallback_agent: "general_assistant"
+      max_retries: 2
+      escalation_threshold: 0.3
+
+  # Tâche de recherche dans la base de connaissances
+  knowledge_search:
+    name: "Recherche base de connaissances"
     description: |
-      Traiter une réclamation client avec empathie et efficacité:
-      1. Écouter et comprendre le problème avec empathie
-      2. Classifier automatiquement le type et la gravité
-      3. Collecter toutes les informations nécessaires de manière structurée
-      4. Générer un numéro de dossier unique et traçable
-      5. Déterminer la priorité selon la matrice de criticité
-      6. Initier les actions de résolution de niveau 1
-      7. Informer le client des délais et prochaines étapes
-    expected_output: |
-      Réclamation complètement traitée avec:
-      - Numéro de dossier unique généré
-      - Classification détaill
+      Effectue une recherche sémantique dans la base de connaissances spécifique
+      à la filiale et l'application pour trouver des informations pertinentes.
+
+    agent: "knowledge_specialist"
+
+    inputs:
+      - "search_query"
+      - "filiale_id"
+      - "application_id"
+      - "language"
+      - "max_results"
+
+    workflow:
+      - step: "prepare_query"
+        description: "Optimiser la requête pour la recherche sémantique"
+        tools: ["query_optimizer"]
+        output: "optimized_query"
+
+      - step: "search_collections"
+        description: "Rechercher dans les collections autorisées"
+        tools: ["chromadb_search"]
+        parameters:
+          similarity_threshold: 0.6
+          max_results: "{{max_results}}"
+        output: "search_results"
+
+      - step: "rank_results"
+        description: "Classer les résultats par pertinence"
+        tools: ["result_ranker"]
+        output: "ranked_results"
+
+      - step: "format_response"
+        description: "Formater la réponse avec sources"
+        output: "formatted_knowledge"
+
+    success_criteria:
+      - "search_results found"
+      - "ranked_results generated"
+
+    error_handling:
+      fallback: "basic_faq_search"
+      timeout: 10
+
+  # Tâche de gestion des réclamations
+  handle_complaint:
+    name: "Gestion de réclamation"
+    description: |
+      Traite les réclamations clients en analysant le sentiment, créant le ticket
+      et proposant un suivi approprié.
+
+    agent: "complaint_handler"
+
+    inputs:
+      - "complaint_text"
+      - "user_info"
+      - "conversation_context"
+      - "severity_indicators"
+
+    workflow:
+      - step: "analyze_sentiment"
+        description: "Analyser le sentiment et la gravité"
+        tools: ["sentiment_analyzer"]
+        output: "sentiment_analysis"
+
+      - step: "extract_complaint_details"
+        description: "Extraire les détails de la réclamation"
+        tools: ["entity_extractor"]
+        output: "complaint_details"
+
+      - step: "determine_category"
+        description: "Catégoriser la réclamation"
+        tools: ["complaint_classifier"]
+        output: "complaint_category"
+
+      - step: "create_ticket"
+        description: "Créer le ticket dans le système"
+        tools: ["create_complaint"]
+        output: "ticket_id"
+
+      - step: "generate_response"
+        description: "Générer une réponse empathique"
+        output: "complaint_response"
+
+    success_criteria:
+      - "sentiment_analysis completed"
+      - "ticket_id created"
+      - "complaint_response generated"
+
+    error_handling:
+      escalation_required: true
+      priority: "high"
+
+# Tâches spécifiques Coris Money
+coris_money_tasks:
+  # Tâche de consultation de solde
+  check_account_balance:
+    name: "Consultation de solde"
+    description: |
+      Récupère et présente le solde d'un compte client avec les informations
+      contextuelles appropriées.
+
+    agent: "coris_banking_assistant"
+
+    inputs:
+      - "account_identifier"
+      - "user_authentication"
+      - "requested_accounts"
+
+    workflow:
+      - step: "validate_access"
+        description: "Valider l'accès au compte"
+        tools: ["account_access_validator"]
+        output: "access_granted"
+
+      - step: "retrieve_balance"
+        description: "Récupérer le solde depuis l'API"
+        tools: ["get_account_balance"]
+        parameters:
+          include_pending: true
+          currency_format: "XOF"
+        output: "balance_data"
+
+      - step: "enrich_context"
+        description: "Ajouter des informations contextuelles"
+        tools: ["account_context_enricher"]
+        output: "enriched_balance"
+
+      - step: "format_response"
+        description: "Formater la réponse utilisateur"
+        template: "balance_response_template"
+        output: "formatted_response"
+
+    success_criteria:
+      - "access_granted confirmed"
+      - "balance_data retrieved"
+      - "formatted_response generated"
+
+    error_handling:
+      insufficient_permissions: "escalate_to_agent"
+      api_timeout: "retry_with_fallback"
+      account_not_found: "clarify_account_details"
+
+  # Tâche d'assistance pour virements
+  transfer_assistance:
+    name: "Assistance virements"
+    description: |
+      Guide l'utilisateur dans les procédures de virement en vérifiant
+      les limites et fournissant les informations nécessaires.
+
+    agent: "coris_operations_specialist"
+
+    inputs:
+      - "transfer_request"
+      - "user_account"
+      - "destination_details"
+
+    workflow:
+      - step: "validate_transfer_details"
+        description: "Valider les détails du virement"
+        tools: ["transfer_validator"]
+        output: "validation_result"
+
+      - step: "check_limits"
+        description: "Vérifier les limites de virement"
+        tools: ["check_transfer_limits"]
+        output: "limits_check"
+
+      - step: "calculate_fees"
+        description: "Calculer les frais de virement"
+        tools: ["get_transfer_fees"]
+        output: "fee_calculation"
+
+      - step: "generate_guidance"
+        description: "Générer les instructions détaillées"
+        template: "transfer_guidance_template"
+        output: "transfer_instructions"
+
+    success_criteria:
+      - "validation_result completed"
+      - "limits_check passed"
+      - "transfer_instructions generated"
+
+    error_handling:
+      limit_exceeded: "suggest_alternatives"
+      invalid_destination: "request_clarification"
+      system_unavailable: "schedule_retry"
+
+  # Tâche de conseil financier
+  financial_advisory:
+    name: "Conseil financier personnalisé"
+    description: |
+      Fournit des conseils financiers personnalisés basés sur le profil
+      et l'historique du client.
+
+    agent: "coris_financial_advisor"
+
+    inputs:
+      - "user_profile"
+      - "financial_goals"
+      - "risk_tolerance"
+      - "account_history"
+
+    workflow:
+      - step: "analyze_financial_profile"
+        description: "Analyser le profil financier du client"
+        tools: ["financial_profile_analyzer"]
+        output: "profile_analysis"
+
+      - step: "identify_opportunities"
+        description: "Identifier les opportunités d'investissement"
+        tools: ["opportunity_finder"]
+        output: "investment_opportunities"
+
+      - step: "assess_risks"
+        description: "Évaluer les risques et compatibilités"
+        tools: ["risk_assessor"]
+        output: "risk_assessment"
+
+      - step: "generate_recommendations"
+        description: "Générer des recommandations personnalisées"
+        template: "advisory_template"
+        output: "financial_advice"
+
+    success_criteria:
+      - "profile_analysis completed"
+      - "investment_opportunities identified"
+      - "financial_advice generated"
+
+    requires_pack: "coris_advanced"
+
+    error_handling:
+      insufficient_data: "request_additional_info"
+      regulatory_constraints: "provide_general_guidance"
+
+# Tâches d'escalade
+escalation_tasks:
+  # Tâche d'escalade intelligente
+  intelligent_escalation:
+    name: "Escalade intelligente"
+    description: |
+      Détermine si une escalade est nécessaire et prépare le contexte
+      pour l'agent humain.
+
+    agent: "escalation_manager"
+
+    inputs:
+      - "conversation_context"
+      - "confidence_scores"
+      - "user_satisfaction_indicators"
+      - "complexity_assessment"
+
+    workflow:
+      - step: "assess_escalation_need"
+        description: "Évaluer la nécessité d'escalade"
+        tools: ["escalation_detector"]
+        output: "escalation_decision"
+
+      - step: "determine_priority"
+        description: "Déterminer la priorité de l'escalade"
+        tools: ["priority_calculator"]
+        output: "escalation_priority"
+
+      - step: "prepare_context"
+        description: "Préparer le contexte pour l'agent humain"
+        tools: ["context_builder"]
+        output: "escalation_context"
+
+      - step: "route_to_human"
+        description: "Router vers l'agent humain approprié"
+        tools: ["human_agent_router"]
+        output: "assigned_agent"
+
+    success_criteria:
+      - "escalation_decision made"
+      - "escalation_context prepared"
+      - "assigned_agent determined"
+
+    triggers:
+      - "confidence_score < 0.3"
+      - "user_frustration_detected"
+      - "complex_financial_request"
+      - "compliance_issue_detected"
+
+  # Tâche de handover vers agent humain
+  human_handover:
+    name: "Transfert vers agent humain"
+    description: |
+      Effectue le transfert propre vers un agent humain avec tout
+      le contexte nécessaire.
+
+    agent: "handover_specialist"
+
+    inputs:
+      - "escalation_context"
+      - "conversation_history"
+      - "user_profile"
+      - "assigned_human_agent"
+
+    workflow:
+      - step: "summarize_conversation"
+        description: "Résumer la conversation pour l'agent humain"
+        tools: ["conversation_summarizer"]
+        output: "conversation_summary"
+
+      - step: "highlight_key_points"
+        description: "Mettre en évidence les points clés"
+        tools: ["key_point_extractor"]
+        output: "key_highlights"
+
+      - step: "prepare_handover_brief"
+        description: "Préparer le brief de transfert"
+        template: "handover_brief_template"
+        output: "handover_brief"
+
+      - step: "notify_user"
+        description: "Informer l'utilisateur du transfert"
+        template: "handover_notification_template"
+        output: "user_notification"
+
+    success_criteria:
+      - "handover_brief prepared"
+      - "user_notification sent"
+
+    post_actions:
+      - "update_conversation_status"
+      - "log_escalation_metrics"
+
+# Workflows composés
+composite_workflows:
+  # Workflow de traitement complet
+  complete_user_assistance:
+    name: "Assistance utilisateur complète"
+    description: |
+      Workflow principal qui orchestre toutes les tâches nécessaires
+      pour traiter une requête utilisateur du début à la fin.
+
+    sequence:
+      - task: "process_user_query"
+        condition: "always"
+
+      - task: "knowledge_search"
+        condition: "intent_requires_knowledge"
+
+      - task: "check_account_balance"
+        condition: "intent == 'balance_inquiry'"
+
+      - task: "transfer_assistance"
+        condition: "intent == 'transfer_help'"
+
+      - task: "handle_complaint"
+        condition: "intent == 'complaint'"
+
+      - task: "financial_advisory"
+        condition: "intent == 'financial_advice' AND pack_level >= 'advanced'"
+
+      - task: "intelligent_escalation"
+        condition: "confidence_low OR user_frustrated"
+
+      - task: "human_handover"
+        condition: "escalation_approved"
+
+    parallel_execution:
+      enabled: false # Exécution séquentielle pour ce workflow
+
+    error_handling:
+      global_fallback: "general_assistance"
+      timeout: 60
+
+    success_metrics:
+      - "user_satisfaction_score"
+      - "resolution_time"
+      - "escalation_rate"
+
+# Configuration des règles d'exécution
+execution_rules:
+  # Règles de timeout
+  timeouts:
+    default_task: 30 # secondes
+    knowledge_search: 10
+    api_calls: 15
+    complex_analysis: 45
+
+  # Règles de retry
+  retry_policies:
+    default:
+      max_retries: 2
+      backoff_factor: 1.5
+
+    api_failures:
+      max_retries: 3
+      backoff_factor: 2.0
+
+    critical_tasks:
+      max_retries: 1
+      immediate_escalation: true
+
+  # Règles de parallélisation
+  parallelization:
+    max_concurrent_tasks: 3
+    resource_allocation: "balanced"
+    priority_scheduling: true
+
+  # Règles de monitoring
+  monitoring:
+    log_all_steps: true
+    track_performance: true
+    alert_on_failures: true
+    metrics_collection: true
+
+# Templates de réponse
+response_templates:
+  balance_response_template:
+    fr: |
+      Votre solde actuel est de **{balance} XOF**.
+      {pending_transactions}
+
+      💡 **Suggestions :**
+      {suggested_actions}
+
+    en: |
+      Your current balance is **{balance} XOF**.
+      {pending_transactions}
+
+      💡 **Suggestions:**
+      {suggested_actions}
+
+  transfer_guidance_template:
+    fr: |
+      **Guide pour votre virement :**
+
+      📋 **Détails :**
+      - Montant : {amount} XOF
+      - Frais : {fees} XOF
+      - Limite disponible : {remaining_limit} XOF
+
+      ✅ **Étapes à suivre :**
+      {step_by_step_instructions}
+
+    en: |
+      **Transfer Guide:**
+
+      📋 **Details:**
+      - Amount: {amount} XOF
+      - Fees: {fees} XOF
+      - Available limit: {remaining_limit} XOF
+
+      ✅ **Steps to follow:**
+      {step_by_step_instructions}
+
+  handover_notification_template:
+    fr: |
+      Je vous transfère maintenant vers un conseiller spécialisé qui pourra mieux vous aider.
+
+      🕐 **Temps d'attente estimé :** {estimated_wait_time}
+      📋 **Référence :** {ticket_reference}
+
+      Un résumé de notre conversation a été transmis au conseiller.
+
+    en: |
+      I'm now transferring you to a specialized advisor who can better assist you.
+
+      🕐 **Estimated wait time:** {estimated_wait_time}
+      📋 **Reference:** {ticket_reference}
+
+      A summary of our conversation has been shared with the advisor.
+
+# Métadonnées
+metadata:
+  version: "1.0.0"
+  last_updated: "2024-01-15"
+  schema_version: "1.0"
+
+  # Compatibilité
+  crewai_version: ">=0.20.0"
+  python_version: ">=3.11"
+
+  # Performance targets
+  performance_targets:
+    average_task_duration: 5.0 # secondes
+    success_rate: 0.95
+    escalation_rate: 0.15
+
+  # Documentation
+  documentation:
+    task_specifications: "https://docs.coris.ci/crewai/tasks"
+    workflow_guide: "https://docs.coris.ci/crewai/workflows"
+    troubleshooting: "https://docs.coris.ci/crewai/troubleshooting"

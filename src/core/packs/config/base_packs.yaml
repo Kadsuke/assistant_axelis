@@ -1,16 +1,269 @@
+# Configuration des packs de base - Coris Intelligent Assistant
+# Ces packs sont communs à toutes les applications
+
 base_packs:
-  infrastructure_pack:
-    name: "Infrastructure de Base"
-    description: "Socle technique réutilisable"
+  coris_basic:
+    name: "Coris Basic"
+    description: "Pack de base avec fonctionnalités essentielles"
+    tier: "basic"
+
+    # Fonctionnalités de base incluses
     features:
-      - mcp_server
-      - vector_database
-      - conversation_history
-      - basic_monitoring
-      - multi_language_support
+      - "basic_chat"
+      - "faq_search"
+      - "knowledge_base_access"
+      - "conversation_history"
+      - "basic_analytics"
+      - "standard_support"
+
+    # Agents autorisés
     agents:
-      - core_customer_service
-      - core_escalation_handler
-    tools:
-      - database_connection
-      - conversation_manager
+      - "general_assistant"
+      - "faq_specialist"
+      - "basic_support"
+
+    # Limites d'utilisation
+    limits:
+      tokens_per_day: 50000
+      conversations_per_hour: 100
+      max_conversation_length: 50
+      concurrent_conversations: 10
+      knowledge_base_queries_per_hour: 200
+      escalation_requests_per_day: 5
+
+    # Configuration des fonctionnalités
+    settings:
+      response_time_target: 3.0 # secondes
+      max_retry_attempts: 2
+      auto_escalation_threshold: 0.3 # confiance minimum
+      session_timeout: 1800 # 30 minutes
+
+    # Tarification (pour information)
+    price:
+      monthly_base: 0 # Gratuit
+      per_conversation: 0
+      currency: "XOF"
+
+  coris_advanced:
+    name: "Coris Advanced"
+    description: "Pack avancé avec agents spécialisés et outils métier"
+    tier: "advanced"
+
+    # Fonctionnalités avancées
+    features:
+      - "basic_chat"
+      - "faq_search"
+      - "knowledge_base_access"
+      - "conversation_history"
+      - "basic_analytics"
+      - "standard_support"
+      - "advanced_analytics"
+      - "specialized_agents"
+      - "business_tools_access"
+      - "priority_support"
+      - "complaint_management"
+      - "sentiment_analysis"
+      - "intelligent_routing"
+
+    # Agents spécialisés inclus
+    agents:
+      - "general_assistant"
+      - "faq_specialist"
+      - "basic_support"
+      - "business_specialist"
+      - "complaint_handler"
+      - "escalation_manager"
+
+    # Limites étendues
+    limits:
+      tokens_per_day: 150000
+      conversations_per_hour: 500
+      max_conversation_length: 100
+      concurrent_conversations: 50
+      knowledge_base_queries_per_hour: 1000
+      escalation_requests_per_day: 20
+      priority_queue_access: true
+
+    # Configuration optimisée
+    settings:
+      response_time_target: 2.0 # secondes
+      max_retry_attempts: 3
+      auto_escalation_threshold: 0.2
+      session_timeout: 3600 # 1 heure
+      priority_handling: true
+
+    # Tarification
+    price:
+      monthly_base: 25000 # XOF
+      per_conversation: 10
+      currency: "XOF"
+
+  coris_premium:
+    name: "Coris Premium"
+    description: "Pack premium avec tous les agents et outils avancés"
+    tier: "premium"
+
+    # Toutes les fonctionnalités
+    features:
+      - "basic_chat"
+      - "faq_search"
+      - "knowledge_base_access"
+      - "conversation_history"
+      - "basic_analytics"
+      - "standard_support"
+      - "advanced_analytics"
+      - "specialized_agents"
+      - "business_tools_access"
+      - "priority_support"
+      - "complaint_management"
+      - "sentiment_analysis"
+      - "intelligent_routing"
+      - "custom_integrations"
+      - "real_time_monitoring"
+      - "advanced_reporting"
+      - "api_access"
+      - "white_label_support"
+      - "dedicated_support"
+
+    # Tous les agents disponibles
+    agents:
+      - "general_assistant"
+      - "faq_specialist"
+      - "basic_support"
+      - "business_specialist"
+      - "complaint_handler"
+      - "escalation_manager"
+      - "technical_expert"
+      - "financial_advisor"
+      - "premium_concierge"
+
+    # Limites maximales
+    limits:
+      tokens_per_day: 500000
+      conversations_per_hour: 2000
+      max_conversation_length: 200
+      concurrent_conversations: 200
+      knowledge_base_queries_per_hour: 5000
+      escalation_requests_per_day: 100
+      priority_queue_access: true
+      dedicated_resources: true
+
+    # Configuration premium
+    settings:
+      response_time_target: 1.0 # seconde
+      max_retry_attempts: 5
+      auto_escalation_threshold: 0.1
+      session_timeout: 7200 # 2 heures
+      priority_handling: true
+      dedicated_support: true
+      sla_guarantee: "99.9%"
+
+    # Tarification premium
+    price:
+      monthly_base: 100000 # XOF
+      per_conversation: 5
+      currency: "XOF"
+
+# Configuration globale des fonctionnalités
+feature_definitions:
+  basic_chat:
+    description: "Chat basique avec l'assistant"
+    required_agents: ["general_assistant"]
+
+  faq_search:
+    description: "Recherche dans la base de FAQ"
+    required_agents: ["faq_specialist"]
+
+  knowledge_base_access:
+    description: "Accès à la base de connaissances"
+    tools_required: ["knowledge_search"]
+
+  conversation_history:
+    description: "Historique des conversations"
+    storage_required: true
+
+  specialized_agents:
+    description: "Accès aux agents spécialisés métier"
+    required_agents: ["business_specialist"]
+
+  complaint_management:
+    description: "Gestion et suivi des réclamations"
+    required_agents: ["complaint_handler"]
+    tools_required: ["complaint_tools"]
+
+  sentiment_analysis:
+    description: "Analyse de sentiment en temps réel"
+    ai_features: ["sentiment_analyzer"]
+
+  intelligent_routing:
+    description: "Routage intelligent vers les bons agents"
+    ai_features: ["intent_classifier", "agent_router"]
+
+  advanced_analytics:
+    description: "Analytics avancés et rapports détaillés"
+    tools_required: ["analytics_engine"]
+
+  real_time_monitoring:
+    description: "Monitoring en temps réel des conversations"
+    infrastructure: ["monitoring_dashboard"]
+
+  api_access:
+    description: "Accès complet aux APIs"
+    permissions: ["api_full_access"]
+
+  custom_integrations:
+    description: "Intégrations personnalisées"
+    development_support: true
+
+# Règles de mise à niveau automatique
+upgrade_rules:
+  usage_based:
+    # Upgrade automatique si dépassement des limites
+    token_threshold: 0.9 # 90% des tokens utilisés
+    conversation_threshold: 0.9 # 90% des conversations utilisées
+    escalation_threshold: 0.8 # 80% des escalades utilisées
+
+  performance_based:
+    # Upgrade suggérée si performance dégradée
+    response_time_degradation: 2.0 # facteur de dégradation
+    error_rate_threshold: 0.05 # 5% d'erreurs
+
+  time_based:
+    # Évaluation périodique pour upgrade
+    evaluation_period: "monthly"
+    usage_trend_analysis: true
+
+# Configuration de la facturation
+billing_config:
+  currency: "XOF"
+  billing_cycle: "monthly"
+  overage_charges:
+    tokens:
+      price_per_1k: 5 # XOF par 1000 tokens
+      grace_period: 0.1 # 10% de dépassement gratuit
+    conversations:
+      price_per_conversation: 25 # XOF par conversation
+      grace_period: 0.05 # 5% de dépassement gratuit
+
+  payment_methods:
+    - "mobile_money"
+    - "bank_transfer"
+    - "credit_account"
+
+# Metadata de configuration
+metadata:
+  version: "1.0.0"
+  last_updated: "2024-01-15"
+  schema_version: "1.0"
+
+  # Contacts pour support
+  support_contacts:
+    technical: "tech-support@coris.ci"
+    billing: "billing@coris.ci"
+    general: "support@coris.ci"
+
+  # Documentation
+  documentation:
+    pack_details: "https://docs.coris.ci/packs"
+    api_reference: "https://docs.coris.ci/api"
+    migration_guide: "https://docs.coris.ci/migration"
