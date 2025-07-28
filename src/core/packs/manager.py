@@ -3,6 +3,7 @@ Gestionnaire de packs multi-applications - Version corrigée
 """
 import yaml
 from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set
 from pathlib import Path
 import structlog
 
