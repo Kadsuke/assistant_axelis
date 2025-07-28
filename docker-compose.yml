@@ -1,160 +1,472 @@
 version: "3.8"
 
+# Configuration Docker Compose pour Coris Intelligent Assistant
+# Orchestration complète de tous les services
+
 services:
-  # Base de données PostgreSQL pour conversations
+  # Base de données PostgreSQL pour les conversations
   postgres-conversations:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: coris-postgres-conversations
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: coris_conversations
-      POSTGRES_USER: coris_conv_user
-      POSTGRES_PASSWORD: coris_conv_password
+      POSTGRES_DB: ${CONVERSATIONS_DB:-coris_conversations}
+      POSTGRES_USER: ${CONVERSATIONS_USER:-coris_conv_user}
+      POSTGRES_PASSWORD: ${CONVERSATIONS_PASSWORD:-coris_conv_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
       - postgres_conversations_data:/var/lib/postgresql/data
-      - ./scripts/sql/init_conversations.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./scripts/sql/init_conversations.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ./scripts/sql/conversations_schema.sql:/docker-entrypoint-initdb.d/02_schema.sql:ro
     ports:
-      - "5433:5432"
+      - "${CONVERSATIONS_PORT:-5432}:5432"
     networks:
-      - coris-network
+      - coris_network
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -U coris_conv_user -d coris_conversations"]
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${CONVERSATIONS_USER:-coris_conv_user} -d ${CONVERSATIONS_DB:-coris_conversations}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ChromaDB pour la base de connaissances vectorielle
+  chromadb:
+    image: ghcr.io/chroma-core/chroma:latest
+    container_name: coris-chromadb
+    restart: unless-stopped
+    environment:
+      - CHROMA_SERVER_AUTHN_CREDENTIALS_FILE=/chroma/server.htpasswd
+      - CHROMA_SERVER_AUTHN_PROVIDER=chromadb.auth.basic_authn.BasicAuthenticationServerProvider
+      - ANONYMIZED_TELEMETRY=${CHROMA_ANONYMIZED_TELEMETRY:-TRUE}
+    volumes:
+      - chromadb_data:/chroma/chroma
+      - ./configs/chroma/server.htpasswd:/chroma/server.htpasswd:ro
+    ports:
+      - "${CHROMADB_PORT:-8001}:8000"
+    networks:
+      - coris_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  # Redis pour cache et sessions
+  # Redis pour la gestion du cache et des sessions
   redis:
     image: redis:7-alpine
     container_name: coris-redis
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-coris_redis_password} --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
+      - ./configs/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
     networks:
-      - coris-network
+      - coris_network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
-  # Application principale
+  # Application principale Coris Intelligent Assistant
   coris-assistant:
-    build: .
-    container_name: coris-assistant-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_VERSION=3.11
+    container_name: coris-assistant-main
+    restart: unless-stopped
     environment:
       # OpenAI
       - OPENAI_API_KEY=${OPENAI_API_KEY}
 
-      # Base conversations (conteneur local)
-      - CONVERSATIONS_HOST=postgres-conversations
-      - CONVERSATIONS_PORT=5432
-      - CONVERSATIONS_DB=coris_conversations
-      - CONVERSATIONS_USER=coris_conv_user
-      - CONVERSATIONS_PASSWORD=coris_conv_password
+      # Application
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - SECRET_KEY=${SECRET_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
 
-      # Bases existantes (vos vraies credentials)
+      # Bases de données
       - DATAWAREHOUSE_HOST=${DATAWAREHOUSE_HOST}
-      - DATAWAREHOUSE_PORT=${DATAWAREHOUSE_PORT}
+      - DATAWAREHOUSE_PORT=${DATAWAREHOUSE_PORT:-5432}
       - DATAWAREHOUSE_DB=${DATAWAREHOUSE_DB}
       - DATAWAREHOUSE_USER=${DATAWAREHOUSE_USER}
       - DATAWAREHOUSE_PASSWORD=${DATAWAREHOUSE_PASSWORD}
 
       - RECLAMATIONS_HOST=${RECLAMATIONS_HOST}
-      - RECLAMATIONS_PORT=${RECLAMATIONS_PORT}
+      - RECLAMATIONS_PORT=${RECLAMATIONS_PORT:-5432}
       - RECLAMATIONS_DB=${RECLAMATIONS_DB}
       - RECLAMATIONS_USER=${RECLAMATIONS_USER}
       - RECLAMATIONS_PASSWORD=${RECLAMATIONS_PASSWORD}
 
-      # ChromaDB
-      - CHROMADB_PERSIST_DIRECTORY=/app/data/chroma_data
+      - CONVERSATIONS_HOST=postgres-conversations
+      - CONVERSATIONS_PORT=5432
+      - CONVERSATIONS_DB=${CONVERSATIONS_DB:-coris_conversations}
+      - CONVERSATIONS_USER=${CONVERSATIONS_USER:-coris_conv_user}
+      - CONVERSATIONS_PASSWORD=${CONVERSATIONS_PASSWORD:-coris_conv_password}
 
-      # Configuration app
-      - ENVIRONMENT=development
-      - LOG_LEVEL=INFO
-      - API_HOST=0.0.0.0
-      - API_PORT=8000
+      # ChromaDB
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - CHROMADB_AUTH_USER=${CHROMADB_USER:-admin}
+      - CHROMADB_AUTH_PASSWORD=${CHROMADB_PASSWORD:-admin123}
 
       # Redis
-      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-coris_redis_password}
+
+      # API Configuration
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_WORKERS=${API_WORKERS:-4}
+      - API_TIMEOUT=${API_TIMEOUT:-60}
+
+      # Monitoring
+      - PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
+      - PROMETHEUS_PORT=${PROMETHEUS_PORT:-8002}
+
+      # Performance
+      - MAX_CONCURRENT_CONVERSATIONS=${MAX_CONCURRENT_CONVERSATIONS:-100}
+      - TOKEN_RATE_LIMIT=${TOKEN_RATE_LIMIT:-1000}
 
     volumes:
-      - ./data:/app/data
-      - ./knowledge_bases:/app/knowledge_bases
-      - ./configs:/app/configs
+      - ./data/logs:/app/data/logs
+      - ./knowledge_bases:/app/knowledge_bases:ro
+      - ./configs:/app/configs:ro
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
+      - "${PROMETHEUS_PORT:-8002}:8002"
+    networks:
+      - coris_network
     depends_on:
       postgres-conversations:
         condition: service_healthy
+      chromadb:
+        condition: service_healthy
       redis:
         condition: service_healthy
-    networks:
-      - coris-network
-    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
-  # Nginx reverse proxy
+  # Worker pour tâches asynchrones
+  coris-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: coris-worker
+    restart: unless-stopped
+    command:
+      [
+        "python",
+        "-m",
+        "celery",
+        "worker",
+        "-A",
+        "core.tasks.celery_app",
+        "--loglevel=info",
+        "--concurrency=4",
+      ]
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # Mêmes variables DB que l'app principale
+      - CONVERSATIONS_HOST=postgres-conversations
+      - CONVERSATIONS_PORT=5432
+      - CONVERSATIONS_DB=${CONVERSATIONS_DB:-coris_conversations}
+      - CONVERSATIONS_USER=${CONVERSATIONS_USER:-coris_conv_user}
+      - CONVERSATIONS_PASSWORD=${CONVERSATIONS_PASSWORD:-coris_conv_password}
+
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - CHROMADB_AUTH_USER=${CHROMADB_USER:-admin}
+      - CHROMADB_AUTH_PASSWORD=${CHROMADB_PASSWORD:-admin123}
+
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-coris_redis_password}
+
+      # Configuration Celery
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-coris_redis_password}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-coris_redis_password}@redis:6379/2
+
+    volumes:
+      - ./data/logs:/app/data/logs
+      - ./knowledge_bases:/app/knowledge_bases:ro
+      - ./configs:/app/configs:ro
+    networks:
+      - coris_network
+    depends_on:
+      - coris-assistant
+      - redis
+
+  # Nginx comme reverse proxy et load balancer
   nginx:
     image: nginx:alpine
     container_name: coris-nginx
-    volumes:
-      - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./configs/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./configs/nginx/coris.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./configs/ssl:/etc/nginx/ssl:ro
+      - ./data/logs/nginx:/var/log/nginx
+    networks:
+      - coris_network
     depends_on:
       - coris-assistant
-    networks:
-      - coris-network
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Monitoring avec Prometheus
+  # Prometheus pour les métriques
   prometheus:
     image: prom/prometheus:latest
     container_name: coris-prometheus
-    volumes:
-      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
+    restart: unless-stopped
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
       - "--web.console.libraries=/etc/prometheus/console_libraries"
       - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_WEB_PORT:-9090}:9090"
     networks:
-      - coris-network
+      - coris_network
+    depends_on:
+      - coris-assistant
 
-  # Dashboard avec Grafana
+  # Grafana pour les dashboards
   grafana:
     image: grafana/grafana:latest
     container_name: coris-grafana
+    restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./configs/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
-      - ./configs/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ./configs/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./configs/grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT:-3000}:3000"
+    networks:
+      - coris_network
     depends_on:
       - prometheus
-    networks:
-      - coris-network
 
+  # Service de backup automatique
+  backup-service:
+    image: postgres:15-alpine
+    container_name: coris-backup
+    restart: "no"
+    environment:
+      - PGPASSWORD=${CONVERSATIONS_PASSWORD:-coris_conv_password}
+    volumes:
+      - ./data/backups:/backups
+      - ./scripts/backup/backup.sh:/backup.sh:ro
+    command: /bin/sh -c "chmod +x /backup.sh && /backup.sh"
+    networks:
+      - coris_network
+    depends_on:
+      postgres-conversations:
+        condition: service_healthy
+    profiles:
+      - backup
+
+  # Service de monitoring des logs
+  log-aggregator:
+    image: fluent/fluent-bit:latest
+    container_name: coris-log-aggregator
+    restart: unless-stopped
+    volumes:
+      - ./configs/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./data/logs:/app/logs:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    networks:
+      - coris_network
+    depends_on:
+      - coris-assistant
+    profiles:
+      - logging
+
+  # Service de health checks externe
+  health-checker:
+    image: alpine:latest
+    container_name: coris-health-checker
+    restart: unless-stopped
+    command: |
+      /bin/sh -c "
+      apk add --no-cache curl &&
+      while true; do
+        echo 'Checking services health...'
+        curl -f http://coris-assistant:8000/api/v1/health || echo 'Main app unhealthy'
+        curl -f http://chromadb:8000/api/v1/heartbeat || echo 'ChromaDB unhealthy'
+        curl -f http://nginx/health || echo 'Nginx unhealthy'
+        sleep 300
+      done"
+    networks:
+      - coris_network
+    depends_on:
+      - coris-assistant
+      - nginx
+    profiles:
+      - monitoring
+
+# Volumes persistants
 volumes:
   postgres_conversations_data:
-  redis_data:
-  prometheus_data:
-  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/postgres
 
+  chromadb_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/chroma_data
+
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis
+
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/prometheus
+
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/grafana
+
+# Réseau pour la communication inter-services
 networks:
-  coris-network:
+  coris_network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Configuration des profiles pour différents environnements
+x-common-variables: &common-variables
+  ENVIRONMENT: ${ENVIRONMENT:-production}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  SECRET_KEY: ${SECRET_KEY}
+
+# Profils d'exécution
+profiles:
+  # Profile de développement
+  development:
+    services:
+      coris-assistant:
+        environment:
+          <<: *common-variables
+          ENVIRONMENT: development
+          LOG_LEVEL: DEBUG
+        volumes:
+          - .:/app # Mount code for development
+        ports:
+          - "8000:8000"
+          - "5678:5678" # Debug port
+
+  # Profile de production
+  production:
+    services:
+      coris-assistant:
+        environment:
+          <<: *common-variables
+          ENVIRONMENT: production
+          LOG_LEVEL: INFO
+        deploy:
+          replicas: 2
+          resources:
+            limits:
+              cpus: "2.0"
+              memory: 4G
+            reservations:
+              cpus: "1.0"
+              memory: 2G
+
+  # Profile de test
+  test:
+    services:
+      coris-assistant:
+        environment:
+          <<: *common-variables
+          ENVIRONMENT: test
+          LOG_LEVEL: DEBUG
+        command: ["python", "-m", "pytest", "/app/tests", "-v"]
+
+# Configuration des ressources par défaut
+x-default-resources: &default-resources
+  deploy:
+    resources:
+      limits:
+        cpus: "1.0"
+        memory: 1G
+      reservations:
+        cpus: "0.5"
+        memory: 512M
+
+# Labels pour l'organisation et le monitoring
+x-common-labels: &common-labels
+  project: "coris-intelligent-assistant"
+  version: "1.0.0"
+  maintainer: "Coris AI Team"
+  environment: "${ENVIRONMENT:-production}"
+
+# Configuration de logging par défaut
+x-logging: &default-logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+      labels: "project,version,environment"
+
+# Commandes de gestion
+x-management-commands:
+  &management-commands # Commande d'initialisation de la base de données
+  init-db:
+    command: ["python", "-m", "scripts.init_database"]
+
+  # Commande de migration
+  migrate:
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+
+  # Commande de seed des données
+  seed-data:
+    command: ["python", "-m", "scripts.seed_knowledge_base"]

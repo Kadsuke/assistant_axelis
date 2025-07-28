@@ -1,0 +1,596 @@
+# Configuration du système de monitoring pour Coris Intelligent Assistant
+# Monitoring complet : métriques, santé, performance, business
+
+# Configuration globale
+global:
+  # Intervalles de collecte
+  scrape_interval: "15s"
+  evaluation_interval: "15s"
+
+  # Rétention des données
+  retention:
+    metrics: "15d"
+    alerts: "30d"
+    traces: "7d"
+
+  # Configuration des labels globaux
+  external_labels:
+    cluster: "coris-assistant"
+    environment: "${ENVIRONMENT:-production}"
+    datacenter: "${DATACENTER:-abidjan}"
+
+  # Timezone
+  timezone: "Africa/Abidjan"
+
+# Configuration Prometheus
+prometheus:
+  # Configuration serveur
+  server:
+    listen_address: "0.0.0.0:9090"
+    storage_path: "/prometheus"
+    retention_time: "15d"
+    retention_size: "10GB"
+
+    # Configuration de performance
+    query:
+      timeout: "2m"
+      max_concurrent: 20
+      max_samples: 50000000
+
+  # Targets à scraper
+  scrape_configs:
+    # Application principale
+    - job_name: "coris-assistant"
+      scrape_interval: "15s"
+      metrics_path: "/api/v1/metrics"
+      static_configs:
+        - targets: ["coris-assistant:8002"]
+      relabel_configs:
+        - source_labels: [__address__]
+          target_label: instance
+        - target_label: service
+          replacement: "coris-assistant"
+
+    # Base de données PostgreSQL
+    - job_name: "postgres-conversations"
+      scrape_interval: "30s"
+      static_configs:
+        - targets: ["postgres-exporter:9187"]
+      relabel_configs:
+        - target_label: service
+          replacement: "postgres-conversations"
+
+    # ChromaDB
+    - job_name: "chromadb"
+      scrape_interval: "30s"
+      metrics_path: "/api/v1/heartbeat"
+      static_configs:
+        - targets: ["chromadb:8000"]
+      relabel_configs:
+        - target_label: service
+          replacement: "chromadb"
+
+    # Redis
+    - job_name: "redis"
+      scrape_interval: "30s"
+      static_configs:
+        - targets: ["redis-exporter:9121"]
+      relabel_configs:
+        - target_label: service
+          replacement: "redis"
+
+    # Nginx
+    - job_name: "nginx"
+      scrape_interval: "15s"
+      static_configs:
+        - targets: ["nginx-exporter:9113"]
+      relabel_configs:
+        - target_label: service
+          replacement: "nginx"
+
+    # Node Exporter (métriques système)
+    - job_name: "node-exporter"
+      scrape_interval: "15s"
+      static_configs:
+        - targets: ["node-exporter:9100"]
+      relabel_configs:
+        - target_label: service
+          replacement: "system"
+
+# Métriques applicatives personnalisées
+custom_metrics:
+  # Métriques business
+  business_metrics:
+    # Conversations
+    conversations:
+      - name: "coris_conversations_total"
+        type: "counter"
+        description: "Nombre total de conversations"
+        labels: ["filiale_id", "application", "channel", "pack_level"]
+
+      - name: "coris_conversations_duration_seconds"
+        type: "histogram"
+        description: "Durée des conversations en secondes"
+        labels: ["filiale_id", "pack_level"]
+        buckets: [1, 5, 10, 30, 60, 300, 600, 1800, 3600]
+
+      - name: "coris_active_conversations"
+        type: "gauge"
+        description: "Nombre de conversations actives"
+        labels: ["filiale_id"]
+
+    # Agents CrewAI
+    agents:
+      - name: "coris_agent_executions_total"
+        type: "counter"
+        description: "Nombre d'exécutions d'agents"
+        labels: ["agent_name", "task_type", "filiale_id", "success"]
+
+      - name: "coris_agent_execution_duration_seconds"
+        type: "histogram"
+        description: "Durée d'exécution des agents"
+        labels: ["agent_name", "task_type"]
+        buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60]
+
+      - name: "coris_agent_confidence_score"
+        type: "histogram"
+        description: "Score de confiance des agents"
+        labels: ["agent_name"]
+        buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+    # Escalades
+    escalations:
+      - name: "coris_escalations_total"
+        type: "counter"
+        description: "Nombre total d'escalades"
+        labels: ["filiale_id", "reason", "priority", "agent_type"]
+
+      - name: "coris_escalation_resolution_time_seconds"
+        type: "histogram"
+        description: "Temps de résolution des escalades"
+        labels: ["priority", "agent_type"]
+        buckets: [60, 300, 600, 1800, 3600, 7200, 14400, 28800]
+
+    # Tokens OpenAI
+    openai:
+      - name: "coris_openai_tokens_total"
+        type: "counter"
+        description: "Tokens OpenAI consommés"
+        labels: ["model", "type", "filiale_id"] # type: input/output
+
+      - name: "coris_openai_requests_total"
+        type: "counter"
+        description: "Requêtes vers OpenAI"
+        labels: ["model", "status_code"]
+
+      - name: "coris_openai_cost_usd"
+        type: "counter"
+        description: "Coût OpenAI en USD"
+        labels: ["model", "filiale_id"]
+
+  # Métriques techniques
+  technical_metrics:
+    # APIs externes
+    external_apis:
+      - name: "coris_external_api_requests_total"
+        type: "counter"
+        description: "Requêtes vers APIs externes"
+        labels: ["api_name", "endpoint", "method", "status_code"]
+
+      - name: "coris_external_api_duration_seconds"
+        type: "histogram"
+        description: "Durée des appels APIs externes"
+        labels: ["api_name", "endpoint"]
+        buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10, 30]
+
+    # Base de données
+    database:
+      - name: "coris_database_queries_total"
+        type: "counter"
+        description: "Requêtes base de données"
+        labels: ["database", "operation", "table"]
+
+      - name: "coris_database_query_duration_seconds"
+        type: "histogram"
+        description: "Durée des requêtes DB"
+        labels: ["database", "operation"]
+        buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5]
+
+    # Cache Redis
+    cache:
+      - name: "coris_cache_operations_total"
+        type: "counter"
+        description: "Opérations cache"
+        labels: ["operation", "hit_miss"] # operation: get/set/del
+
+      - name: "coris_cache_size_bytes"
+        type: "gauge"
+        description: "Taille du cache en bytes"
+        labels: ["cache_type"]
+
+# Collecteurs de métriques
+collectors:
+  # Collecteur pour conversations
+  conversations:
+    enabled: true
+    interval: "30s"
+
+    # Métriques à collecter
+    metrics:
+      - "total_conversations_last_hour"
+      - "average_conversation_duration"
+      - "conversations_by_pack_level"
+      - "conversations_by_channel"
+      - "escalation_rate"
+
+    # Queries SQL pour collecter les données
+    queries:
+      total_conversations:
+        sql: |
+          SELECT COUNT(*) as value 
+          FROM conversations 
+          WHERE created_at > NOW() - INTERVAL '1 hour'
+        metric: "coris_conversations_last_hour"
+
+      escalation_rate:
+        sql: |
+          SELECT 
+            COALESCE(escalated::float / NULLIF(total, 0), 0) as value
+          FROM (
+            SELECT 
+              COUNT(*) as total,
+              COUNT(CASE WHEN status = 'escalated' THEN 1 END) as escalated
+            FROM conversations 
+            WHERE created_at > NOW() - INTERVAL '1 hour'
+          ) t
+        metric: "coris_escalation_rate_percent"
+
+  # Collecteur pour agents
+  agents:
+    enabled: true
+    interval: "15s"
+
+    # Métriques en temps réel depuis l'application
+    source: "application_metrics"
+
+  # Collecteur pour système
+  system:
+    enabled: true
+    interval: "10s"
+
+    metrics:
+      - "cpu_usage_percent"
+      - "memory_usage_percent"
+      - "disk_usage_percent"
+      - "network_io_bytes"
+      - "disk_io_bytes"
+
+# Health checks et sondes
+health_checks:
+  # Configuration des health checks
+  global:
+    timeout: "5s"
+    interval: "30s"
+    retries: 3
+
+  # Health checks par service
+  services:
+    coris_assistant:
+      endpoint: "http://coris-assistant:8000/api/v1/health"
+      expected_status: 200
+      expected_response_time: "2s"
+      critical: true
+
+      # Checks détaillés
+      detailed_checks:
+        - name: "database_connectivity"
+          query: "SELECT 1"
+          database: "conversations"
+
+        - name: "chromadb_connectivity"
+          endpoint: "http://chromadb:8000/api/v1/heartbeat"
+
+        - name: "redis_connectivity"
+          command: "PING"
+
+        - name: "openai_api_status"
+          endpoint: "https://api.openai.com/v1/models"
+          headers:
+            Authorization: "Bearer ${OPENAI_API_KEY}"
+
+    postgres_conversations:
+      endpoint: "pg_isready -h postgres-conversations -p 5432"
+      critical: true
+
+    chromadb:
+      endpoint: "http://chromadb:8000/api/v1/heartbeat"
+      critical: true
+
+    redis:
+      command: "redis-cli -h redis ping"
+      critical: false
+
+    nginx:
+      endpoint: "http://nginx/health"
+      critical: true
+
+# Dashboards Grafana
+dashboards:
+  # Dashboard principal - Vue d'ensemble
+  overview:
+    title: "Coris Assistant - Vue d'ensemble"
+    refresh: "30s"
+    time_range: "1h"
+
+    panels:
+      - title: "Statut des Services"
+        type: "stat"
+        targets:
+          - expr: "up{job=~'coris-assistant|postgres-conversations|chromadb|redis'}"
+            legend: "{{job}}"
+
+      - title: "Conversations par Heure"
+        type: "graph"
+        targets:
+          - expr: "rate(coris_conversations_total[1h])"
+            legend: "{{filiale_id}}"
+
+      - title: "Temps de Réponse API"
+        type: "graph"
+        targets:
+          - expr: "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))"
+            legend: "p95"
+          - expr: "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))"
+            legend: "p50"
+
+      - title: "Taux d'Erreur"
+        type: "graph"
+        targets:
+          - expr: "rate(http_requests_total{status=~'5..'}[5m]) / rate(http_requests_total[5m])"
+            legend: "Erreur Rate"
+
+      - title: "Escalades"
+        type: "graph"
+        targets:
+          - expr: "rate(coris_escalations_total[1h])"
+            legend: "{{reason}}"
+
+  # Dashboard conversations
+  conversations:
+    title: "Coris Assistant - Conversations"
+    refresh: "30s"
+
+    panels:
+      - title: "Conversations Actives"
+        type: "stat"
+        targets:
+          - expr: "coris_active_conversations"
+
+      - title: "Durée Moyenne des Conversations"
+        type: "stat"
+        targets:
+          - expr: "avg(coris_conversations_duration_seconds)"
+
+      - title: "Conversations par Filiale"
+        type: "pie"
+        targets:
+          - expr: "sum by (filiale_id) (rate(coris_conversations_total[1h]))"
+
+      - title: "Conversations par Canal"
+        type: "bar"
+        targets:
+          - expr: "sum by (channel) (rate(coris_conversations_total[1h]))"
+
+      - title: "Conversations par Pack"
+        type: "table"
+        targets:
+          - expr: "sum by (pack_level, filiale_id) (rate(coris_conversations_total[1h]))"
+
+  # Dashboard agents
+  agents:
+    title: "Coris Assistant - Agents CrewAI"
+    refresh: "15s"
+
+    panels:
+      - title: "Exécutions d'Agents"
+        type: "graph"
+        targets:
+          - expr: "rate(coris_agent_executions_total[5m])"
+            legend: "{{agent_name}}"
+
+      - title: "Temps d'Exécution des Agents"
+        type: "heatmap"
+        targets:
+          - expr: "sum(rate(coris_agent_execution_duration_seconds_bucket[5m])) by (le, agent_name)"
+
+      - title: "Score de Confiance"
+        type: "graph"
+        targets:
+          - expr: "avg by (agent_name) (coris_agent_confidence_score)"
+            legend: "{{agent_name}}"
+
+      - title: "Taux de Succès des Agents"
+        type: "stat"
+        targets:
+          - expr: "rate(coris_agent_executions_total{success='true'}[5m]) / rate(coris_agent_executions_total[5m])"
+
+  # Dashboard infrastructure
+  infrastructure:
+    title: "Coris Assistant - Infrastructure"
+    refresh: "10s"
+
+    panels:
+      - title: "CPU Usage"
+        type: "graph"
+        targets:
+          - expr: "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode='idle'}[5m])) * 100)"
+            legend: "{{instance}}"
+
+      - title: "Memory Usage"
+        type: "graph"
+        targets:
+          - expr: "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100"
+            legend: "{{instance}}"
+
+      - title: "Disk Usage"
+        type: "graph"
+        targets:
+          - expr: "(node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100"
+            legend: "{{mountpoint}}"
+
+      - title: "Network I/O"
+        type: "graph"
+        targets:
+          - expr: "rate(node_network_receive_bytes_total[5m])"
+            legend: "{{device}} - RX"
+          - expr: "rate(node_network_transmit_bytes_total[5m])"
+            legend: "{{device}} - TX"
+
+# Alertes détaillées (complémentaires au fichier alerts.yml)
+monitoring_alerts:
+  # Alertes de performance
+  performance:
+    high_response_time_p95:
+      condition: "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 10"
+      duration: "5m"
+      severity: "warning"
+      description: "P95 response time > 10s"
+
+    high_agent_execution_time:
+      condition: "histogram_quantile(0.95, sum(rate(coris_agent_execution_duration_seconds_bucket[5m])) by (le, agent_name)) > 30"
+      duration: "5m"
+      severity: "warning"
+      description: "Agent execution time P95 > 30s"
+
+  # Alertes business
+  business:
+    low_agent_confidence:
+      condition: "avg(coris_agent_confidence_score) < 0.6"
+      duration: "10m"
+      severity: "warning"
+      description: "Average agent confidence < 60%"
+
+    high_escalation_rate:
+      condition: "coris_escalation_rate_percent > 25"
+      duration: "15m"
+      severity: "warning"
+      description: "Escalation rate > 25%"
+
+    unusual_conversation_volume:
+      condition: "rate(coris_conversations_total[1h]) > (avg_over_time(rate(coris_conversations_total[1h])[7d]) * 2)"
+      duration: "10m"
+      severity: "info"
+      description: "Conversation volume 2x higher than weekly average"
+
+# Configuration de l'observabilité
+observability:
+  # Tracing distribué
+  tracing:
+    enabled: true
+    provider: "jaeger" # ou "zipkin"
+
+    jaeger:
+      endpoint: "${JAEGER_ENDPOINT:-http://jaeger:14268/api/traces}"
+      service_name: "coris-assistant"
+
+    # Sampling
+    sampling:
+      type: "probabilistic"
+      rate: 0.1 # 10% des traces
+
+    # Tags automatiques
+    tags:
+      - "environment"
+      - "version"
+      - "user_id"
+      - "conversation_id"
+
+  # Profiling de performance
+  profiling:
+    enabled: false # Activé uniquement pour debug
+    provider: "pyspy"
+    interval: "10s"
+    duration: "30s"
+
+  # Métriques custom de l'application
+  custom_instrumentation:
+    enabled: true
+
+    # Décorateurs automatiques
+    auto_instrument:
+      - "database_queries"
+      - "external_api_calls"
+      - "agent_executions"
+      - "cache_operations"
+
+# Intégrations tierces
+integrations:
+  # PagerDuty
+  pagerduty:
+    enabled: false
+    integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+
+  # Slack
+  slack:
+    enabled: true
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    channel: "#coris-alerts"
+
+  # DataDog
+  datadog:
+    enabled: false
+    api_key: "${DATADOG_API_KEY}"
+    app_key: "${DATADOG_APP_KEY}"
+
+  # New Relic
+  newrelic:
+    enabled: false
+    license_key: "${NEWRELIC_LICENSE_KEY}"
+
+# Configuration de maintenance
+maintenance:
+  # Fenêtres de maintenance
+  windows:
+    daily:
+      start: "02:00"
+      duration: "30m"
+      suppress_alerts: true
+
+    weekly:
+      day: "Sunday"
+      start: "03:00"
+      duration: "2h"
+      suppress_alerts: true
+
+  # Tâches de maintenance automatique
+  automated_tasks:
+    - name: "cleanup_old_metrics"
+      schedule: "0 3 * * 0" # Dimanche 3h
+      command: "/app/scripts/cleanup_metrics.sh"
+
+    - name: "backup_monitoring_config"
+      schedule: "0 4 * * 0" # Dimanche 4h
+      command: "/app/scripts/backup_monitoring.sh"
+
+    - name: "rotate_logs"
+      schedule: "0 2 * * *" # Tous les jours 2h
+      command: "/app/scripts/rotate_monitoring_logs.sh"
+
+# Métadonnées
+metadata:
+  version: "1.0.0"
+  last_updated: "2024-01-15"
+  schema_version: "1.0"
+
+  # Contacts et responsabilités
+  contacts:
+    monitoring_team: "monitoring@coris.ci"
+    sre_team: "sre@coris.ci"
+    on_call: "oncall@coris.ci"
+
+  # Documentation
+  documentation:
+    runbooks: "https://docs.coris.ci/runbooks"
+    monitoring_guide: "https://docs.coris.ci/monitoring"
+    grafana_dashboards: "https://docs.coris.ci/dashboards"
+    alerting_guide: "https://docs.coris.ci/alerting"

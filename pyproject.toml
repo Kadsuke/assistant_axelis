@@ -1,0 +1,93 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "coris-intelligent-assistant"
+version = "1.0.0"
+description = "Assistant intelligent multi-agents pour applications Coris Money"
+requires-python = ">=3.11"
+
+# Dépendances essentielles seulement
+dependencies = [
+    # Core Web Framework
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.5.0",
+    "python-multipart>=0.0.6",
+    # CrewAI et AI Framework
+    "crewai>=0.20.0",
+    "crewai-tools>=0.3.0",
+    # OpenAI et LLM
+    "openai>=1.6.0",
+    "tiktoken>=0.5.2",
+    # Base de données vectorielle
+    "chromadb>=0.4.18",
+    # Bases de données relationnelles
+    "asyncpg>=0.29.0",
+    "sqlalchemy[asyncio]>=2.0.25",
+    # Cache et sessions
+    "redis>=5.0.1",
+    # Processing et utilities
+    "structlog>=23.2.0",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0.1",
+    "httpx>=0.25.2",
+    # Authentification et sécurité
+    "pyjwt[crypto]>=2.8.0",
+    "passlib[bcrypt]>=1.7.4",
+    # Date et temps
+    "python-dateutil>=2.8.2",
+    # Configuration
+    "pydantic-settings>=2.1.0",
+    "prometheus-client>=0.22.1",
+]
+
+[project.optional-dependencies]
+# Dépendances de développement
+dev = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "black>=23.11.0",
+    "isort>=5.12.0",
+    "mypy>=1.7.1",
+]
+
+# Dépendances supplémentaires (ajoutées progressivement)
+extras = [
+    "sentence-transformers>=2.2.2",
+    "prometheus-client>=0.19.0",
+    "python-docx>=1.1.0",
+    "beautifulsoup4>=4.12.2",
+    "markdown>=3.5.1",
+    "pandas>=2.1.4",
+]
+
+# Configuration Hatchling pour trouver les packages
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
+
+[tool.uv]
+package = true
+
+# Configuration Black
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+# Configuration isort
+[tool.isort]
+profile = "black"
+line_length = 100
+src_paths = ["src", "tests"]
+
+# Configuration Pytest
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = ["-v", "--tb=short"]
+asyncio_mode = "auto"

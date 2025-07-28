@@ -1,0 +1,756 @@
+# Configuration du système de logging pour Coris Intelligent Assistant
+# Logging multicouche : application, infrastructure, sécurité, business
+
+# Configuration globale
+global:
+  # Format de logs par défaut
+  default_format: "json"
+  timezone: "Africa/Abidjan"
+  encoding: "utf-8"
+  
+  # Niveaux de log
+  log_levels:
+    development: "DEBUG"
+    staging: "INFO"
+    production: "INFO"
+    
+  # Rétention des logs
+  retention:
+    application_logs: "30d"
+    security_logs: "90d"
+    audit_logs: "365d"
+    error_logs: "60d"
+    access_logs: "14d"
+    
+  # Taille maximale des fichiers
+  max_file_size: "100MB"
+  max_files: 10
+  
+  # Compression des anciens logs
+  compression:
+    enabled: true
+    format: "gzip"
+    threshold: "1d"
+
+# Configuration des loggers applicatifs
+application_loggers:
+  # Logger principal de l'application
+  root:
+    level: "${LOG_LEVEL:-INFO}"
+    handlers: ["file", "console", "structured"]
+    format: "detailed"
+    
+    filters:
+      - "sensitive_data_filter"
+      - "pii_filter"
+      
+  # Logger pour les agents CrewAI
+  agents:
+    name: "coris.agents"
+    level: "INFO"
+    handlers: ["agents_file", "structured"]
+    format: "agent_format"
+    
+    # Configuration spécifique aux agents
+    context_fields:
+      - "agent_name"
+      - "task_id"
+      - "conversation_id"
+      - "user_id"
+      - "filiale_id"
+      - "execution_time"
+      - "confidence_score"
+      
+    # Logging des performances des agents
+    performance_logging:
+      enabled: true
+      threshold_ms: 1000  # Log si > 1 seconde
+      
+  # Logger pour les conversations
+  conversations:
+    name: "coris.conversations"
+    level: "INFO" 
+    handlers: ["conversations_file", "structured"]
+    format: "conversation_format"
+    
+    # Champs spécifiques aux conversations
+    context_fields:
+      - "conversation_id"
+      - "user_id"
+      - "filiale_id"
+      - "application_id"
+      - "message_type"
+      - "agent_used"
+      - "tokens_consumed"
+      - "response_time"
+      - "escalation_status"
+      
+    # Masquage des données sensibles
+    sanitization:
+      enabled: true
+      fields_to_mask:
+        - "user_message"  # Partiel
+        - "account_number"
+        - "phone_number"
+        - "email"
+        
+  # Logger pour les APIs externes
+  external_apis:
+    name: "coris.external"
+    level: "INFO"
+    handlers: ["api_file", "structured"]
+    format: "api_format"
+    
+    # Traçage des appels API
+    trace_requests: true
+    trace_responses: false  # Sécurité
+    
+    context_fields:
+      - "api_name"
+      - "endpoint"
+      - "method"
+      - "status_code"
+      - "response_time"
+      - "request_id"
+      
+  # Logger pour la sécurité
+  security:
+    name: "coris.security"
+    level: "WARNING"
+    handlers: ["security_file", "siem"]
+    format: "security_format"
+    
+    # Événements de sécurité à logger
+    events:
+      - "authentication_failure"
+      - "authorization_failure"
+      - "rate_limit_exceeded"
+      - "suspicious_activity"
+      - "data_access_violation"
+      - "escalation_triggered"
+      
+    context_fields:
+      - "event_type"
+      - "user_id"
+      - "ip_address"
+      - "user_agent"
+      - "endpoint"
+      - "risk_score"
+      
+  # Logger pour les erreurs
+  errors:
+    name: "coris.errors"
+    level: "ERROR"
+    handlers: ["error_file", "alert_handler", "structured"]
+    format: "error_format"
+    
+    # Capture automatique d'informations de debug
+    capture_context: true
+    capture_stack_trace: true
+    capture_locals: false  # Sécurité - pas de variables locales
+    
+    # Groupement des erreurs similaires
+    error_grouping:
+      enabled: true
+      similarity_threshold: 0.8
+      time_window: "1h"
+
+# Configuration des handlers (destinations)
+handlers:
+  # Console pour développement
+  console:
+    type: "console"
+    level: "DEBUG"
+    format: "colored"
+    stream: "stdout"
+    
+  # Fichier principal de l'application
+  file:
+    type: "rotating_file"
+    level: "INFO"
+    filename: "/app/data/logs/coris_assistant.log"
+    max_size: "100MB"
+    backup_count: 10
+    format: "detailed"
+    
+  # Fichier pour les agents
+  agents_file:
+    type: "rotating_file"
+    level: "INFO" 
+    filename: "/app/data/logs/agents.log"
+    max_size: "50MB"
+    backup_count: 5
+    format: "agent_format"
+    
+  # Fichier pour les conversations
+  conversations_file:
+    type: "rotating_file"
+    level: "INFO"
+    filename: "/app/data/logs/conversations.log"
+    max_size: "200MB"
+    backup_count: 15
+    format: "conversation_format"
+    
+  # Fichier pour les APIs externes
+  api_file:
+    type: "rotating_file"
+    level: "INFO"
+    filename: "/app/data/logs/external_apis.log"
+    max_size: "50MB"
+    backup_count: 7
+    format: "api_format"
+    
+  # Fichier pour la sécurité
+  security_file:
+    type: "rotating_file"
+    level: "WARNING"
+    filename: "/app/data/logs/security.log"
+    max_size: "100MB"
+    backup_count: 30  # Rétention longue pour sécurité
+    format: "security_format"
+    
+  # Fichier pour les erreurs
+  error_file:
+    type: "rotating_file"
+    level: "ERROR"
+    filename: "/app/data/logs/errors.log"
+    max_size: "100MB"
+    backup_count: 20
+    format: "error_format"
+    
+  # Handler structuré pour agrégation
+  structured:
+    type: "json_file"
+    level: "INFO"
+    filename: "/app/data/logs/structured.jsonl"
+    max_size: "500MB"
+    backup_count: 30
+    format: "json"
+    
+    # Enrichissement automatique
+    enrich_context: true
+    add_timestamp: true
+    add_hostname: true
+    add_process_info: true
+    
+  # Handler pour alertes (erreurs critiques)
+  alert_handler:
+    type: "smtp"
+    level: "CRITICAL"
+    mail_host: "${SMTP_SERVER}"
+    mail_port: 587
+    mail_username: "${SMTP_USERNAME}"
+    mail_password: "${SMTP_PASSWORD}"
+    from_addr: "alerts@coris.ci"
+    to_addrs: ["tech-team@coris.ci"]
+    subject: "🚨 Erreur Critique - Coris Assistant"
+    
+  # Handler pour SIEM
+  siem:
+    type: "syslog"
+    level: "WARNING"
+    host: "${SIEM_HOST:-localhost}"
+    port: 514
+    facility: "local0"
+    format: "siem_format"
+
+# Formats de logging
+formats:
+  # Format coloré pour console
+  colored:
+    format: "%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(name)s%(reset)s %(message)s"
+    
+  # Format détaillé pour fichiers
+  detailed:
+    format: "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d - %(funcName)s() - %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+    
+  # Format JSON structuré
+  json:
+    format: |
+      {
+        "timestamp": "%(asctime)s",
+        "level": "%(levelname)s",
+        "logger": "%(name)s",
+        "module": "%(module)s",
+        "function": "%(funcName)s",
+        "line": %(lineno)d,
+        "message": "%(message)s",
+        "hostname": "%(hostname)s",
+        "process_id": %(process)d,
+        "thread_id": %(thread)d
+      }
+    datefmt: "%Y-%m-%dT%H:%M:%S.%fZ"
+    
+  # Format spécifique aux agents
+  agent_format:
+    format: "%(asctime)s [%(levelname)s] AGENT:%(agent_name)s TASK:%(task_id)s CONV:%(conversation_id)s - %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+    
+  # Format pour conversations
+  conversation_format:
+    format: "%(asctime)s [%(levelname)s] CONV:%(conversation_id)s USER:%(user_id)s FILIALE:%(filiale_id)s - %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+    
+  # Format pour APIs externes
+  api_format:
+    format: "%(asctime)s [%(levelname)s] API:%(api_name)s %(method)s %(endpoint)s - %(status_code)s in %(response_time)sms"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+    
+  # Format pour sécurité
+  security_format:
+    format: "%(asctime)s [SECURITY] %(event_type)s - USER:%(user_id)s IP:%(ip_address)s - %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+    
+  # Format pour erreurs
+  error_format:
+    format: "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d - %(message)s\nStack: %(stack_trace)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+    
+  # Format pour SIEM
+  siem_format:
+    format: "CEF:0|Coris|Assistant|1.0|%(event_type)s|%(message)s|%(severity)s|src=%(ip_address)s suser=%(user_id)s"
+
+# Filtres pour traitement des logs
+filters:
+  # Filtre pour masquer les données sensibles
+  sensitive_data_filter:
+    type: "regex_replacer"
+    patterns:
+      # Masquer les numéros de compte
+      - pattern: '\b\d{10,16}\b'
+        replacement: "***ACCOUNT***"
+      # Masquer les numéros de téléphone
+      - pattern: '\+225\d{8}'
+        replacement: "***PHONE***"
+      # Masquer les emails
+      - pattern: '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        replacement: "***EMAIL***"
+      # Masquer les tokens JWT
+      - pattern: 'Bearer [A-Za-z0-9\-_.]+'
+        replacement: "Bearer ***TOKEN***"
+        
+  # Filtre pour données personnelles (PII)
+  pii_filter:
+    type: "field_masker"
+    fields_to_mask:
+      - "password"
+      - "secret"
+      - "api_key"
+      - "authorization"
+      - "x-api-key"
+    mask_char: "*"
+    
+  # Filtre pour limiter les logs trop verbeux
+  rate_limit_filter:
+    type: "rate_limiter"
+    max_lines_per_minute: 1000
+    burst_allowance: 100
+    
+  # Filtre pour exclure les health checks
+  health_check_filter:
+    type: "exclusion"
+    patterns:
+      - "/health"
+      - "/metrics"
+      - "GET /api/v1/health"
+
+# Configuration de l'agrégation des logs
+log_aggregation:
+  # FluentBit configuration
+  fluent_bit:
+    enabled: true
+    config_file: "/fluent-bit/etc/fluent-bit.conf"
+    
+    inputs:
+      - type: "tail"
+        path: "/app/data/logs/*.log"
+        parser: "json"
+        tag: "coris.app.*"
+        
+      - type: "tail"
+        path: "/app/data/logs/structured.jsonl"
+        parser: "json"
+        tag: "coris.structured"
+        
+    outputs:
+      # Sortie vers Elasticsearch (si disponible)
+      - type: "elasticsearch"
+        host: "${ELASTICSEARCH_HOST:-elasticsearch}"
+        port: 9200
+        index: "coris-logs"
+        type: "_doc"
+        
+      # Sortie vers fichier de sauvegarde
+      - type: "file"
+        path: "/app/data/logs/aggregated/"
+        file: "coris-$(date +%Y%m%d).log"
+        
+    filters:
+      - type: "parser"
+        key_name: "message"
+        parser: "json"
+        reserve_data: true
+        
+      - type: "record_modifier"
+        record:
+          service: "coris-assistant"
+          environment: "${ENVIRONMENT}"
+
+# Monitoring des logs
+log_monitoring:
+  # Métriques sur les logs
+  metrics:
+    enabled: true
+    
+    # Compteurs par niveau de log
+    level_counters:
+      - "debug_count"
+      - "info_count"
+      - "warning_count"
+      - "error_count"
+      - "critical_count"
+      
+    # Métriques par service
+    service_metrics:
+      - "conversation_logs_per_minute"
+      - "agent_execution_logs_per_minute"
+      - "api_call_logs_per_minute"
+      - "security_events_per_hour"
+      
+    # Alertes sur les logs
+    alerts:
+      # Trop d'erreurs
+      error_spike:
+        condition: "error_count > 50 in 5m"
+        severity: "warning"
+        
+      # Pic de logs de sécurité
+      security_spike:
+        condition: "security_events_per_hour > 100"
+        severity: "critical"
+        
+      # Logs manquants (service down?)
+      log_silence:
+        condition: "info_count == 0 in 5m"
+        severity: "warning"
+
+# Configuration par environnement
+environments:
+  development:
+    global:
+      default_format: "colored"
+      
+    loggers:
+      root:
+        level: "DEBUG"
+        handlers: ["console", "file"]
+        
+      agents:
+        level: "DEBUG"
+        
+      conversations:
+        level: "DEBUG"
+        
+    # Désactiver certains filtres en dev
+    filters:
+      sensitive_data_filter:
+        enabled: false
+      rate_limit_filter:
+        enabled: false
+        
+    # Pas d'agrégation en dev
+    log_aggregation:
+      fluent_bit:
+        enabled: false
+        
+  staging:
+    global:
+      default_format: "json"
+      
+    loggers:
+      root:
+        level: "INFO"
+        handlers: ["file", "structured"]
+        
+    # Filtres activés mais moins restrictifs
+    filters:
+      sensitive_data_filter:
+        enabled: true
+      rate_limit_filter:
+        max_lines_per_minute: 2000
+        
+    log_aggregation:
+      fluent_bit:
+        enabled: true
+        
+  production:
+    global:
+      default_format: "json"
+      
+    loggers:
+      root:
+        level: "INFO"
+        handlers: ["file", "structured", "alert_handler"]
+        
+      security:
+        level: "INFO"  # Plus verbeux en production
+        
+    # Tous les filtres activés
+    filters:
+      sensitive_data_filter:
+        enabled: true
+      pii_filter:
+        enabled: true
+      rate_limit_filter:
+        enabled: true
+        
+    log_aggregation:
+      fluent_bit:
+        enabled: true
+        
+    # Monitoring renforcé en production
+    log_monitoring:
+      metrics:
+        enabled: true
+      alerts:
+        enabled: true
+
+# Intégrations avec systèmes externes
+integrations:
+  # Elasticsearch pour recherche et analyse
+  elasticsearch:
+    enabled: false
+    hosts: ["${ELASTICSEARCH_HOST}:9200"]
+    username: "${ELASTICSEARCH_USERNAME}"
+    password: "${ELASTICSEARCH_PASSWORD}"
+    
+    # Configuration des index
+    indices:
+      application: "coris-app-logs"
+      security: "coris-security-logs"
+      conversations: "coris-conversations-logs"
+      
+    # Mapping des champs
+    mappings:
+      timestamp:
+        type: "date"
+        format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+      level:
+        type: "keyword"
+      message:
+        type: "text"
+        analyzer: "standard"
+      user_id:
+        type: "keyword"
+      conversation_id:
+        type: "keyword"
+        
+  # Kibana pour visualisation
+  kibana:
+    enabled: false
+    host: "${KIBANA_HOST}:5601"
+    
+    # Dashboards pré-configurés
+    dashboards:
+      - "coris-application-overview"
+      - "coris-conversations-analytics"
+      - "coris-security-monitoring"
+      - "coris-error-tracking"
+      
+  # Grafana Loki comme alternative légère
+  loki:
+    enabled: true
+    host: "${LOKI_HOST:-loki}:3100"
+    
+    # Labels pour Loki
+    labels:
+      job: "coris-assistant"
+      environment: "${ENVIRONMENT}"
+      service: "coris-assistant"
+      
+  # Datadog (si utilisé)
+  datadog:
+    enabled: false
+    api_key: "${DATADOG_API_KEY}"
+    
+    # Tags Datadog
+    tags:
+      - "service:coris-assistant"
+      - "environment:${ENVIRONMENT}"
+      - "version:1.0.0"
+
+# Configuration de sauvegarde des logs
+backup:
+  enabled: true
+  
+  # Fréquence de sauvegarde
+  schedule:
+    daily: "02:00"  # 2h du matin
+    weekly: "Sunday 03:00"
+    monthly: "1st 04:00"
+    
+  # Destinations de sauvegarde
+  destinations:
+    local:
+      enabled: true
+      path: "/app/data/backups/logs"
+      retention: "90d"
+      compression: true
+      
+    s3:
+      enabled: false
+      bucket: "${S3_LOGS_BUCKET}"
+      region: "${S3_REGION}"
+      access_key: "${S3_ACCESS_KEY}"
+      secret_key: "${S3_SECRET_KEY}"
+      retention: "365d"
+      
+    ftp:
+      enabled: false
+      host: "${FTP_HOST}"
+      username: "${FTP_USERNAME}"
+      password: "${FTP_PASSWORD}"
+      path: "/logs/coris-assistant"
+      
+  # Scripts de sauvegarde
+  scripts:
+    pre_backup: "/app/scripts/pre_backup_logs.sh"
+    post_backup: "/app/scripts/post_backup_logs.sh"
+    cleanup: "/app/scripts/cleanup_old_logs.sh"
+
+# Performance et optimisation
+performance:
+  # Buffer pour améliorer les performances I/O
+  buffering:
+    enabled: true
+    buffer_size: "64KB"
+    flush_interval: "5s"
+    
+  # Async logging pour réduire la latence
+  async_logging:
+    enabled: true
+    queue_size: 10000
+    timeout: "1s"
+    
+  # Batch writing pour réduire les I/O
+  batch_writing:
+    enabled: true
+    batch_size: 100
+    max_wait: "2s"
+    
+  # Compression des logs en temps réel
+  real_time_compression:
+    enabled: false  # Désactivé par défaut (CPU intensif)
+    algorithm: "gzip"
+    level: 6
+
+# Debugging et développement
+debugging:
+  # Mode debug pour les logs
+  debug_mode:
+    enabled: false  # Activé uniquement pour debugging
+    
+    # Fonctionnalités de debug
+    features:
+      - "log_all_sql_queries"
+      - "log_all_api_calls"
+      - "log_agent_internal_state"
+      - "log_conversation_context"
+      
+  # Profiling des performances de logging
+  profiling:
+    enabled: false
+    sample_rate: 0.01  # 1% des logs
+    
+  # Tests de logging
+  testing:
+    mock_handlers: false
+    capture_logs: true
+    log_level_override: "DEBUG"
+
+# Conformité et audit
+compliance:
+  # RGPD / GDPR
+  gdpr:
+    enabled: true
+    
+    # Anonymisation automatique
+    anonymization:
+      enabled: true
+      fields: ["user_id", "ip_address", "email"]
+      method: "hash_sha256"
+      
+    # Droit à l'effacement
+    right_to_erasure:
+      enabled: true
+      retention_override: "30d"
+      
+  # SOX compliance (si applicable)
+  sox:
+    enabled: false
+    audit_trail: true
+    immutable_logs: true
+    
+  # Audit logging
+  audit:
+    enabled: true
+    
+    # Événements à auditer
+    events:
+      - "user_authentication"
+      - "data_access"
+      - "configuration_change"
+      - "escalation_creation"
+      - "sensitive_data_access"
+      
+    # Format d'audit
+    format: "cef"  # Common Event Format
+    
+    # Rétention spéciale pour audit
+    retention: "7y"  # 7 ans pour conformité
+
+# Scripts et outils
+tools:
+  # Script d'analyse des logs
+  log_analyzer:
+    path: "/app/scripts/analyze_logs.py"
+    
+    # Analyses disponibles
+    analyses:
+      - "error_patterns"
+      - "performance_trends"
+      - "user_behavior_analysis"
+      - "security_incidents"
+      
+  # Script de rotation manuelle
+  log_rotator:
+    path: "/app/scripts/rotate_logs.sh"
+    
+  # Script de nettoyage
+  log_cleaner:
+    path: "/app/scripts/clean_logs.sh"
+    
+    # Règles de nettoyage
+    rules:
+      - "delete_debug_logs_older_than_7d"
+      - "compress_info_logs_older_than_1d"
+      - "archive_error_logs_older_than_30d"
+
+# Métadonnées de configuration
+metadata:
+  version: "1.0.0"
+  last_updated: "2024-01-15"
+  schema_version: "1.0"
+  
+  # Documentation
+  documentation:
+    logging_guide: "https://docs.coris.ci/logging"
+    troubleshooting: "https://docs.coris.ci/logging/troubleshooting"
+    best_practices: "https://docs.coris.ci/logging/best-practices"
+    
+  # Contacts
+  contacts:
+    technical_lead: "tech-lead@coris.ci"
+    security_team: "security@coris.ci"
+    compliance_officer: "compliance@coris.ci"

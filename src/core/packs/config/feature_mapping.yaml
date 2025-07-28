@@ -1,0 +1,411 @@
+# Configuration du mapping des fonctionnalités
+# Définit comment les fonctionnalités sont mappées aux agents, outils et permissions
+
+feature_mapping:
+  # ===============================
+  # FONCTIONNALITÉS DE BASE
+  # ===============================
+  basic_chat:
+    description: "Chat basique avec l'assistant"
+    category: "core"
+    required_agents:
+      - "general_assistant"
+    required_tools: []
+    required_permissions: []
+    min_pack_level: "coris_basic"
+
+  faq_search:
+    description: "Recherche dans la FAQ"
+    category: "core"
+    required_agents:
+      - "faq_specialist"
+    required_tools:
+      - "faq_search"
+    required_permissions:
+      - "read_knowledge_base"
+    min_pack_level: "coris_basic"
+
+  knowledge_base_access:
+    description: "Accès à la base de connaissances"
+    category: "core"
+    required_agents:
+      - "general_assistant"
+    required_tools:
+      - "search_knowledge_base"
+    required_permissions:
+      - "read_knowledge_base"
+    min_pack_level: "coris_basic"
+
+  conversation_history:
+    description: "Historique des conversations"
+    category: "core"
+    required_agents: []
+    required_tools:
+      - "get_conversation_history"
+    required_permissions:
+      - "read_conversations"
+    min_pack_level: "coris_basic"
+    storage_required: true
+
+  # ===============================
+  # FONCTIONNALITÉS AVANCÉES
+  # ===============================
+  advanced_analytics:
+    description: "Analytics avancés et rapports"
+    category: "analytics"
+    required_agents:
+      - "analytics_specialist"
+    required_tools:
+      - "analytics_engine"
+      - "report_generator"
+    required_permissions:
+      - "read_analytics"
+      - "generate_reports"
+    min_pack_level: "coris_advanced"
+
+  specialized_agents:
+    description: "Accès aux agents spécialisés"
+    category: "agents"
+    required_agents:
+      - "business_specialist"
+      - "complaint_handler"
+    required_tools: []
+    required_permissions:
+      - "use_specialized_agents"
+    min_pack_level: "coris_advanced"
+
+  complaint_management:
+    description: "Gestion des réclamations"
+    category: "business"
+    required_agents:
+      - "complaint_handler"
+    required_tools:
+      - "create_complaint"
+      - "get_complaint_status"
+      - "update_complaint"
+    required_permissions:
+      - "create_complaints"
+      - "read_complaints"
+      - "update_complaints"
+    min_pack_level: "coris_basic"
+    external_apis:
+      - "reclamations_system"
+
+  sentiment_analysis:
+    description: "Analyse de sentiment en temps réel"
+    category: "ai"
+    required_agents: []
+    required_tools:
+      - "sentiment_analyzer"
+    required_permissions:
+      - "analyze_sentiment"
+    min_pack_level: "coris_advanced"
+    ai_features:
+      - "nlp_processing"
+
+  # ===============================
+  # FONCTIONNALITÉS CORIS MONEY
+  # ===============================
+  coris_faq_system:
+    description: "Système FAQ spécifique Coris Money"
+    category: "coris_money"
+    required_agents:
+      - "coris_banking_assistant"
+    required_tools:
+      - "coris_faq_search"
+    required_permissions:
+      - "read_coris_knowledge"
+    min_pack_level: "coris_basic"
+    application: "coris_money"
+
+  coris_account_info:
+    description: "Informations de compte Coris Money"
+    category: "coris_money"
+    required_agents:
+      - "coris_banking_assistant"
+    required_tools:
+      - "get_account_balance"
+      - "get_account_info"
+    required_permissions:
+      - "read_account_data"
+    min_pack_level: "coris_basic"
+    application: "coris_money"
+    external_apis:
+      - "coris_core_banking"
+
+  coris_balance_inquiry:
+    description: "Consultation de solde Coris Money"
+    category: "coris_money"
+    required_agents:
+      - "coris_banking_assistant"
+    required_tools:
+      - "get_account_balance"
+    required_permissions:
+      - "read_account_balance"
+    min_pack_level: "coris_basic"
+    application: "coris_money"
+    rate_limits:
+      requests_per_hour: 50
+      requests_per_day: 200
+
+  coris_transaction_history:
+    description: "Historique des transactions"
+    category: "coris_money"
+    required_agents:
+      - "coris_banking_assistant"
+    required_tools:
+      - "query_transaction_history"
+    required_permissions:
+      - "read_transactions"
+    min_pack_level: "coris_basic"
+    application: "coris_money"
+
+  coris_account_operations:
+    description: "Opérations avancées sur compte"
+    category: "coris_money"
+    required_agents:
+      - "coris_operations_specialist"
+    required_tools:
+      - "check_transfer_limits"
+      - "get_transfer_fees"
+      - "validate_account"
+    required_permissions:
+      - "read_account_data"
+      - "validate_operations"
+    min_pack_level: "coris_advanced"
+    application: "coris_money"
+
+  coris_transfer_assistance:
+    description: "Assistance pour virements"
+    category: "coris_money"
+    required_agents:
+      - "coris_operations_specialist"
+    required_tools:
+      - "check_transfer_limits"
+      - "get_transfer_fees"
+      - "validate_transfer"
+    required_permissions:
+      - "read_account_data"
+      - "calculate_fees"
+    min_pack_level: "coris_advanced"
+    application: "coris_money"
+
+  coris_complaint_creation:
+    description: "Création de réclamations Coris Money"
+    category: "coris_money"
+    required_agents:
+      - "coris_complaint_handler"
+    required_tools:
+      - "create_complaint"
+      - "classify_complaint"
+    required_permissions:
+      - "create_complaints"
+    min_pack_level: "coris_basic"
+    application: "coris_money"
+    external_apis:
+      - "coris_complaints_system"
+
+  # ===============================
+  # FONCTIONNALITÉS PREMIUM
+  # ===============================
+  coris_transfer_cancellation:
+    description: "Annulation de virements"
+    category: "coris_money"
+    required_agents:
+      - "coris_operations_specialist"
+    required_tools:
+      - "cancel_transfer"
+      - "validate_cancellation"
+    required_permissions:
+      - "cancel_transfers"
+      - "modify_operations"
+    min_pack_level: "coris_premium"
+    application: "coris_money"
+    security_level: "high"
+
+  coris_advanced_security:
+    description: "Fonctionnalités de sécurité avancées"
+    category: "coris_money"
+    required_agents:
+      - "coris_security_specialist"
+    required_tools:
+      - "fraud_detection"
+      - "security_validator"
+    required_permissions:
+      - "security_analysis"
+      - "fraud_detection"
+    min_pack_level: "coris_premium"
+    application: "coris_money"
+
+  coris_wealth_management:
+    description: "Gestion de patrimoine"
+    category: "coris_money"
+    required_agents:
+      - "coris_wealth_manager"
+    required_tools:
+      - "portfolio_analyzer"
+      - "investment_advisor"
+    required_permissions:
+      - "wealth_analysis"
+      - "investment_advice"
+    min_pack_level: "coris_premium"
+    application: "coris_money"
+
+  real_time_monitoring:
+    description: "Monitoring en temps réel"
+    category: "monitoring"
+    required_agents: []
+    required_tools:
+      - "real_time_monitor"
+      - "alert_manager"
+    required_permissions:
+      - "system_monitoring"
+      - "read_metrics"
+    min_pack_level: "coris_advanced"
+    infrastructure_required: true
+
+  api_access:
+    description: "Accès complet aux APIs"
+    category: "integration"
+    required_agents: []
+    required_tools:
+      - "api_client"
+    required_permissions:
+      - "api_full_access"
+      - "external_integrations"
+    min_pack_level: "coris_premium"
+
+  custom_integrations:
+    description: "Intégrations personnalisées"
+    category: "integration"
+    required_agents:
+      - "integration_specialist"
+    required_tools:
+      - "custom_connector"
+    required_permissions:
+      - "custom_integrations"
+      - "system_configuration"
+    min_pack_level: "coris_premium"
+    development_support: true
+
+# Configuration des dépendances entre fonctionnalités
+feature_dependencies:
+  coris_account_operations:
+    depends_on:
+      - "coris_account_info"
+      - "coris_balance_inquiry"
+
+  coris_transfer_assistance:
+    depends_on:
+      - "coris_account_operations"
+
+  coris_transfer_cancellation:
+    depends_on:
+      - "coris_transfer_assistance"
+      - "coris_advanced_security"
+
+  advanced_analytics:
+    depends_on:
+      - "conversation_history"
+
+  custom_integrations:
+    depends_on:
+      - "api_access"
+
+# Règles de validation des fonctionnalités
+validation_rules:
+  pack_hierarchy:
+    - "coris_basic"
+    - "coris_advanced"
+    - "coris_premium"
+
+  inheritance:
+    coris_advanced:
+      inherits_from: "coris_basic"
+    coris_premium:
+      inherits_from: "coris_advanced"
+
+  mutual_exclusions: [] # Fonctionnalités qui ne peuvent pas coexister
+
+  required_combinations:
+    security_features:
+      - "coris_advanced_security"
+      - "fraud_detection"
+    wealth_management:
+      - "coris_wealth_management"
+      - "advanced_analytics"
+
+# Mapping des permissions système
+permission_mapping:
+  read_knowledge_base:
+    description: "Lecture base de connaissances"
+    scope: "knowledge"
+    level: "read"
+
+  read_account_data:
+    description: "Lecture données de compte"
+    scope: "banking"
+    level: "read"
+    pii_access: true
+
+  create_complaints:
+    description: "Création de réclamations"
+    scope: "complaints"
+    level: "write"
+
+  cancel_transfers:
+    description: "Annulation de virements"
+    scope: "banking"
+    level: "modify"
+    security_level: "high"
+    approval_required: true
+
+  api_full_access:
+    description: "Accès complet APIs"
+    scope: "system"
+    level: "admin"
+
+  system_monitoring:
+    description: "Monitoring système"
+    scope: "infrastructure"
+    level: "read"
+
+# Configuration des limites par fonctionnalité
+feature_limits:
+  coris_balance_inquiry:
+    default_limits:
+      requests_per_hour: 100
+      requests_per_day: 500
+    pack_specific:
+      coris_basic:
+        requests_per_hour: 50
+        requests_per_day: 200
+      coris_advanced:
+        requests_per_hour: 200
+        requests_per_day: 1000
+      coris_premium:
+        requests_per_hour: 500
+        requests_per_day: 2000
+
+  coris_complaint_creation:
+    default_limits:
+      requests_per_day: 10
+    pack_specific:
+      coris_basic:
+        requests_per_day: 5
+      coris_advanced:
+        requests_per_day: 20
+      coris_premium:
+        requests_per_day: 50
+
+# Métadonnées
+metadata:
+  version: "1.0.0"
+  last_updated: "2024-01-15"
+  schema_version: "1.0"
+
+  # Documentation
+  documentation:
+    feature_guide: "https://docs.coris.ci/features"
+    permission_model: "https://docs.coris.ci/permissions"
+    integration_guide: "https://docs.coris.ci/integrations"

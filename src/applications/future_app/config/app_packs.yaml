@@ -1,0 +1,77 @@
+# Configuration des packs pour les applications futures
+# Template pour nouvelles applications
+
+future_app_packs:
+  future_basic:
+    name: "Future App Basic"
+    description: "Pack de base pour applications futures"
+    application: "future_app"
+    extends: "coris_basic"
+
+    features:
+      - "basic_chat"
+      - "faq_search"
+      - "knowledge_base_access"
+      - "conversation_history"
+
+    agents:
+      - "general_assistant"
+      - "faq_specialist"
+
+    tools:
+      - "faq_search"
+      - "search_knowledge_base"
+
+    limits:
+      tokens_per_day: 10000
+      conversations_per_hour: 50
+      queries_per_hour: 100
+
+    settings:
+      response_time_target: 3.0
+      max_retry_attempts: 2
+      session_timeout: 1800
+
+  future_advanced:
+    name: "Future App Advanced"
+    description: "Pack avancé pour applications futures"
+    application: "future_app"
+    extends: "coris_advanced"
+
+    features:
+      - "basic_chat"
+      - "faq_search"
+      - "knowledge_base_access"
+      - "conversation_history"
+      - "advanced_analytics"
+      - "specialized_agents"
+      - "complaint_management"
+
+    agents:
+      - "general_assistant"
+      - "faq_specialist"
+      - "business_specialist"
+      - "complaint_handler"
+
+    tools:
+      - "faq_search"
+      - "search_knowledge_base"
+      - "analytics_engine"
+      - "create_complaint"
+
+    limits:
+      tokens_per_day: 50000
+      conversations_per_hour: 200
+      queries_per_hour: 500
+
+    settings:
+      response_time_target: 2.0
+      max_retry_attempts: 3
+      session_timeout: 3600
+
+# Metadata
+metadata:
+  version: "1.0.0"
+  template: true
+  description: "Template de configuration pour futures applications"
+  last_updated: "2024-01-15"

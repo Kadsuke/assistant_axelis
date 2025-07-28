@@ -1,0 +1,60 @@
+# Configuration API pour Coris Money
+
+api_config:
+  version: "v1"
+  base_path: "/api/v1"
+  title: "Coris Money Intelligent Assistant API"
+  description: "API pour l'assistant intelligent Coris Money"
+
+  # Endpoints disponibles
+  endpoints:
+    chat: "/chat"
+    health: "/health"
+    metrics: "/metrics"
+    escalate: "/escalate"
+    conversation_history: "/conversation/{conversation_id}/history"
+
+  # Configuration CORS
+  cors:
+    enabled: true
+    origins:
+      - "http://localhost:3000"
+      - "https://app.corismoney.com"
+      - "https://mobile.corismoney.com"
+    methods: ["GET", "POST", "PUT", "DELETE"]
+    headers: ["*"]
+    credentials: true
+
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+    burst_limit: 100
+    key_function: "get_client_ip"
+
+  # Authentication
+  authentication:
+    type: "api_key"
+    header: "X-API-Key"
+    required: true
+    validation_endpoint: "/auth/validate"
+
+  # Réponses par défaut
+  responses:
+    default_error: "Une erreur s'est produite. Veuillez réessayer."
+    rate_limit_exceeded: "Trop de requêtes. Veuillez patienter."
+    invalid_api_key: "Clé API invalide."
+    service_unavailable: "Service temporairement indisponible."
+
+  # Logging
+  logging:
+    level: "INFO"
+    format: "json"
+    include_request_body: false
+    include_response_body: false
+
+  # Monitoring
+  monitoring:
+    metrics_enabled: true
+    health_check_interval: 30
+    performance_tracking: true

@@ -1,0 +1,243 @@
+# Configuration des agents spécifiques à Coris Money
+
+agents:
+  coris_banking_assistant:
+    role: "Assistant Bancaire Coris Money"
+    goal: "Aider les clients avec les services bancaires et répondre aux questions courantes"
+    backstory: |
+      Spécialiste reconnu des produits et services Coris Money, vous possédez une 
+      connaissance approfondie des procédures, tarifs et fonctionnalités. Votre 
+      expérience vous permet de guider les clients dans leurs opérations quotidiennes 
+      avec assurance et bienveillance.
+    max_iter: 5
+    memory: true
+    verbose: false
+    allow_delegation: false
+
+    # Pack requis
+    required_pack: "coris_basic"
+    required_features:
+      - "coris_faq_system"
+      - "coris_account_info"
+
+    # Outils disponibles
+    tools:
+      - "coris_faq_search"
+      - "search_knowledge_base"
+      - "get_account_balance"
+      - "query_transaction_history"
+
+    # Configuration spécifique
+    settings:
+      response_style: "professional_friendly"
+      language_support: ["fr", "en"]
+      max_response_length: 500
+
+  coris_operations_specialist:
+    role: "Spécialiste Opérations Bancaires Coris Money"
+    goal: "Gérer les opérations bancaires avancées, annulations et analyses de sécurité"
+    backstory: |
+      Expert technique des opérations Coris Money, vous maîtrisez les aspects 
+      complexes des transactions financières. Votre expertise en sécurité bancaire 
+      et votre accès aux outils avancés vous permettent de gérer les opérations 
+      sensibles avec rigueur et précision.
+    max_iter: 3
+    memory: true
+    verbose: false
+    allow_delegation: true
+
+    # Pack requis
+    required_pack: "coris_advanced"
+    required_features:
+      - "coris_account_operations"
+      - "coris_transfer_assistance"
+
+    # Outils spécialisés
+    tools:
+      - "get_account_balance"
+      - "check_transfer_limits"
+      - "get_transfer_fees"
+      - "query_transaction_history"
+      - "validate_transfer_details"
+
+    # Configuration spécifique
+    settings:
+      response_style: "technical_precise"
+      security_level: "high"
+      approval_required: true
+
+  coris_complaint_handler:
+    role: "Gestionnaire de Réclamations Coris Money"
+    goal: "Traiter efficacement les réclamations et assurer un suivi personnalisé et complet"
+    backstory: |
+      Spécialiste chevronné du traitement des réclamations Coris Money, vous 
+      combinez empathie et efficacité. Votre approche méthodique et votre 
+      connaissance des procédures vous permettent de transformer les insatisfactions 
+      en opportunités d'amélioration de la relation client.
+    max_iter: 4
+    memory: true
+    verbose: false
+    allow_delegation: true
+
+    # Pack requis
+    required_pack: "coris_basic"
+    required_features:
+      - "coris_complaint_creation"
+
+    # Outils de gestion des réclamations
+    tools:
+      - "create_complaint"
+      - "get_complaint_status"
+      - "update_complaint"
+      - "sentiment_analyzer"
+      - "search_knowledge_base"
+
+    # Configuration spécifique
+    settings:
+      response_style: "empathetic_professional"
+      priority_handling: true
+      follow_up_enabled: true
+
+  coris_financial_advisor:
+    role: "Conseiller Financier Coris Money"
+    goal: "Fournir des conseils financiers personnalisés et des analyses de dépenses expertes"
+    backstory: |
+      Conseiller financier expérimenté spécialisé dans l'écosystème Coris Money, 
+      vous analysez les habitudes financières avec finesse et proposez des 
+      recommandations personnalisées. Votre expertise aide les clients à optimiser 
+      leur gestion financière et à atteindre leurs objectifs.
+    max_iter: 4
+    memory: true
+    verbose: false
+    allow_delegation: false
+
+    # Pack requis
+    required_pack: "coris_advanced"
+    required_features:
+      - "coris_spending_analysis"
+      - "coris_financial_advice"
+
+    # Outils d'analyse financière
+    tools:
+      - "query_transaction_history"
+      - "get_account_balance"
+      - "analyze_spending_patterns"
+      - "calculate_financial_metrics"
+      - "generate_financial_report"
+
+    # Configuration spécifique
+    settings:
+      response_style: "advisory_detailed"
+      analysis_depth: "comprehensive"
+      recommendation_type: "personalized"
+
+  coris_premium_advisor:
+    role: "Conseiller Premium Coris Money"
+    goal: "Offrir des services de conseil financier haut de gamme et des analyses sophistiquées"
+    backstory: |
+      Conseiller financier d'élite pour la clientèle premium de Coris Money, vous 
+      maîtrisez les stratégies financières avancées et les produits d'investissement. 
+      Votre expertise reconnue vous permet d'accompagner les clients les plus 
+      exigeants dans leurs décisions financières stratégiques.
+    max_iter: 5
+    memory: true
+    verbose: false
+    allow_delegation: true
+
+    # Pack requis
+    required_pack: "coris_premium"
+    required_features:
+      - "coris_wealth_management"
+      - "coris_investment_advice"
+      - "coris_premium_support"
+
+    # Outils premium
+    tools:
+      - "query_transaction_history"
+      - "get_account_balance"
+      - "check_transfer_limits"
+      - "analyze_investment_portfolio"
+      - "generate_wealth_report"
+      - "calculate_risk_metrics"
+
+    # Configuration premium
+    settings:
+      response_style: "executive_premium"
+      sla_priority: "highest"
+      dedicated_support: true
+
+# Configuration globale des agents Coris Money
+global_settings:
+  default_language: "fr"
+  fallback_language: "en"
+
+  # Limites par défaut
+  default_limits:
+    max_conversation_length: 50
+    response_timeout: 30
+    retry_attempts: 3
+
+  # Sécurité
+  security:
+    log_sensitive_data: false
+    encrypt_conversations: true
+    audit_trail: true
+
+  # Performance
+  performance:
+    cache_responses: true
+    cache_duration: 300 # 5 minutes
+    parallel_processing: false
+
+# Règles de routage entre agents
+routing_rules:
+  # Routage par intention
+  by_intent:
+    balance_inquiry: "coris_banking_assistant"
+    transaction_history: "coris_banking_assistant"
+    transfer_assistance: "coris_operations_specialist"
+    complaint: "coris_complaint_handler"
+    financial_advice: "coris_financial_advisor"
+
+  # Routage par pack
+  by_pack:
+    coris_basic:
+      primary: "coris_banking_assistant"
+      secondary: "coris_complaint_handler"
+    coris_advanced:
+      primary: "coris_operations_specialist"
+      secondary: "coris_financial_advisor"
+    coris_premium:
+      primary: "coris_premium_advisor"
+      secondary: "coris_operations_specialist"
+
+  # Escalade automatique
+  escalation:
+    confidence_threshold: 0.3
+    attempt_threshold: 3
+    complexity_indicators:
+      - "urgent"
+      - "manager"
+      - "legal"
+      - "complaint"
+
+# Templates de réponse
+response_templates:
+  greeting:
+    fr: "Bonjour ! Je suis votre assistant Coris Money. Comment puis-je vous aider aujourd'hui ?"
+    en: "Hello! I'm your Coris Money assistant. How can I help you today?"
+
+  escalation:
+    fr: "Je vais transférer votre demande à un conseiller spécialisé qui pourra mieux vous aider."
+    en: "I'll transfer your request to a specialized advisor who can better assist you."
+
+  error:
+    fr: "Je rencontre une difficulté technique. Veuillez réessayer dans quelques instants."
+    en: "I'm experiencing technical difficulties. Please try again in a few moments."
+
+# Métadonnées
+metadata:
+  version: "1.0.0"
+  last_updated: "2024-01-15"
+  application: "coris_money"
+  schema_version: "1.0"

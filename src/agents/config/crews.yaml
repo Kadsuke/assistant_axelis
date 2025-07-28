@@ -1,0 +1,79 @@
+# Configuration des équipes (crews) CrewAI
+
+crews:
+  coris_money_crew:
+    name: "Équipe Coris Money"
+    description: "Équipe spécialisée pour les services Coris Money"
+    application: "coris_money"
+
+    agents:
+      - "coris_banking_assistant"
+      - "coris_operations_specialist"
+
+    workflow: "sequential"
+    memory: true
+    verbose: false
+
+    tasks:
+      - "handle_banking_query"
+      - "process_transaction_request"
+
+    escalation_rules:
+      max_attempts: 3
+      confidence_threshold: 0.7
+
+  general_support_crew:
+    name: "Équipe Support Général"
+    description: "Équipe pour le support client général"
+
+    agents:
+      - "general_assistant"
+      - "faq_specialist"
+
+    workflow: "hierarchical"
+    memory: false
+    verbose: false
+
+    tasks:
+      - "welcome_user"
+      - "handle_faq_query"
+
+    escalation_rules:
+      max_attempts: 2
+      confidence_threshold: 0.6
+
+  complaint_handling_crew:
+    name: "Équipe Gestion Réclamations"
+    description: "Équipe spécialisée dans les réclamations"
+
+    agents:
+      - "complaint_handler"
+      - "escalation_handler"
+
+    workflow: "sequential"
+    memory: true
+    verbose: true
+
+    tasks:
+      - "analyze_complaint"
+      - "create_ticket"
+      - "route_to_specialist"
+
+# Workflows globaux
+workflows:
+  standard_chat:
+    description: "Workflow standard pour chat"
+    steps:
+      - "classify_intent"
+      - "route_to_crew"
+      - "execute_response"
+      - "check_satisfaction"
+
+  complaint_workflow:
+    description: "Workflow pour réclamations"
+    steps:
+      - "analyze_sentiment"
+      - "extract_details"
+      - "create_ticket"
+      - "assign_priority"
+      - "escalate_if_needed"
